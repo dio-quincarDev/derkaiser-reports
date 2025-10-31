@@ -38,14 +38,14 @@ public class AuthServiceImpl implements AuthService {
 		
 		if (userEntityRepository.findByEmail(userEntityRequest.getEmail()).isPresent()) {
 		 log.warn("Intento de crear usuario con email existente: {}", userEntityRequest.getEmail());
-		 throw new DuplicateEmailException("El email ya esta registrado").
+		 throw new DuplicateEmailException("El email ya esta registrado");
 		}
 		
 		UserEntity userToSave = mapToEntity(userEntityRequest, UserRole.USER);
 		UserEntity userCreated = userEntityRepository.save(userToSave);
 		log.info("Usuario creado exitosamente con ID: {}", userCreated.getId());
 		
-		return jwtService.generateToken(userCreated.getEmail(), userCreated.getRole().name());
+		return jwtService.generateToken(userCreated.getEmail());
 	}
 
 	@Override
@@ -62,7 +62,7 @@ public class AuthServiceImpl implements AuthService {
 				);
 		
 		UserEntity user = (UserEntity) authentication.getPrincipal();		
-		return jwtService.generateToken(user.getEmail(), user.getRole().name()) ;
+		return jwtService.generateToken(user.getEmail());
 	}
 	
 	private UserEntity mapToEntity (UserEntityRequest userEntityRequest, UserRole role) {
@@ -73,7 +73,7 @@ public class AuthServiceImpl implements AuthService {
 	                .firstName(userEntityRequest.getFirstName())
 	                .lastName(userEntityRequest.getLastName())
 	                .role(role)
-	                .build()
+	                .build();
 		
 	}
 
