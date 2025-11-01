@@ -17,9 +17,12 @@ import java.util.Date;
 @Service
 public class JwtServiceImpl implements JwtService {
     private static final Logger log = LoggerFactory.getLogger(JwtServiceImpl.class);
-    private final SecretKey secretKey;
-    private static final long EXPIRATION_TIME = 864_000_000;
 
+    private final SecretKey secretKey;
+
+    // ⚠️ NUEVAS CONSTANTES
+    private static final long ACCESS_TOKEN_EXPIRATION = 900_000; // 15 minutos
+    private static final long REFRESH_TOKEN_EXPIRATION = 604_800_000; // 7 días
 
     public JwtServiceImpl(@Value("${jwt.secret}") String secret) {
         if (secret.getBytes().length < 32) {
@@ -28,27 +31,60 @@ public class JwtServiceImpl implements JwtService {
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-
+    // ⚠️ MANTENER MÉTODO EXISTENTE (para compatibilidad)
     @Override
     public TokenResponse generateToken(String email, String role) {
+        String accessToken = generateAccessToken(email, role);
+
+        return TokenResponse.builder()
+                .accessToken(accessToken)
+                .build();
+    }
+
+    // ⚠️ NUEVO MÉTODO: Access Token (15 min)
+    @Override
+    public String generateAccessToken(String email, String role) {
         Date now = new Date();
-        Date expirationDate = new Date(now.getTime() + EXPIRATION_TIME);
+        Date expirationDate = new Date(now.getTime() + ACCESS_TOKEN_EXPIRATION);
 
-        String normalizedRole = role.startsWith("ROLE_")?role.substring(5) : role;
+        String normalizedRole = role.startsWith("ROLE_") ? role.substring(5) : role;
 
-        String token = Jwts.builder()
+        return Jwts.builder()
                 .subject(email)
                 .claim("role", normalizedRole)
+                .claim("type", "access") // ⚠️ Identificador de tipo
                 .issuedAt(now)
                 .expiration(expirationDate)
                 .signWith(secretKey)
                 .compact();
-
-        return TokenResponse.builder()
-                .accessToken(token)
-                .build();
     }
 
+    // ⚠️ NUEVO MÉTODO: Refresh Token (7 días)
+    @Override
+    public String generateRefreshToken(String email) {
+        Date now = new Date();
+        Date expirationDate = new Date(now.getTime() + REFRESH_TOKEN_EXPIRATION);
+
+        return Jwts.builder()
+                .subject(email)
+                .claim("type", "refresh") // ⚠️ Identificador de tipo
+                .issuedAt(now)
+                .expiration(expirationDate)
+                .signWith(secretKey)
+                .compact();
+    }
+
+    // ⚠️ NUEVO MÉTODO: Validar token
+    @Override
+    public boolean validateToken(String token) {
+        try {
+            getClaims(token);
+            return !isExpired(token);
+        } catch (Exception e) {
+            log.warn("Token inválido: {}", e.getMessage());
+            return false;
+        }
+    }
 
     @Override
     public Claims getClaims(String token) {
@@ -59,15 +95,17 @@ public class JwtServiceImpl implements JwtService {
                     .parseSignedClaims(token)
                     .getPayload();
         } catch (Exception e) {
-            log.error("Error al parsear JWT: {}, Causa: {}", e.getMessage(), e.getCause() != null ? e.getCause().getMessage() : "N/A");
+            log.error("Error al parsear JWT: {}, Causa: {}", e.getMessage(),
+                    e.getCause() != null ? e.getCause().getMessage() : "N/A");
             throw new IllegalArgumentException("Token JWT inválido o expirado", e);
         }
     }
+
     @Override
     public boolean isExpired(String token) {
         try {
             return getClaims(token).getExpiration().before(new Date());
-        }catch (Exception e) {
+        } catch (Exception e) {
             return true;
         }
     }

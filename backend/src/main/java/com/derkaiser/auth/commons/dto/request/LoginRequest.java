@@ -12,6 +12,7 @@ import lombok.Setter;
 @Builder
 public class LoginRequest {
 
+    @NotBlank(message = "El email no puede estar vacío")
     @Email(message = "Formato de Email Inválido")
     private String email;
 
