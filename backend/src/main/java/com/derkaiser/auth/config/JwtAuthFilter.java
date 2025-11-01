@@ -38,7 +38,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (!StringUtils.hasText(authHeader) || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
-    }
+        }
 
 
         final String jwt = authHeader.substring(7);
@@ -55,20 +55,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
 
-            if (!jwtService.isExpired(jwt)) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null, // No se necesitan credenciales aquí
-                        userDetails.getAuthorities()
-                );
+            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                    userDetails,
+                    null, // No se necesitan credenciales aquí
+                    userDetails.getAuthorities()
+            );
 
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-                log.debug("Usuario {} autenticado correctamente.", userDetails.getUsername());
-            }
+            SecurityContextHolder.getContext().setAuthentication(authToken);
+            log.debug("Usuario {} autenticado correctamente.", userDetails.getUsername());
+
+            filterChain.doFilter(request, response);
         }
-
-        filterChain.doFilter(request, response);
     }
 }

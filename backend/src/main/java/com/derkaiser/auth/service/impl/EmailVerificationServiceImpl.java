@@ -31,11 +31,12 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
 
     @Override
     @Transactional
-    public void createdAndSendVerificationEmail(UserEntity user) {
+    public void createAndSendVerificationEmail(UserEntity user) {
 
         log.info("Creando token de verificación para usuario: {}", user.getEmail());
 
-        verificationTokenRepository.deleteByUser(user); VerificationToken token = VerificationToken.create(user);
+        verificationTokenRepository.deleteByUserEntity(user);
+        VerificationToken token = VerificationToken.create(user);
         verificationTokenRepository.save(token);
 
         log.info("Token de verificación creado con ID: {}", token.getId());
@@ -64,12 +65,6 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
                     return new IllegalArgumentException("Token de verificación inválido");
                 });
 
-        // Validar que no haya sido usado
-        if (verificationToken.getUsed()) {
-            log.warn("Intento de usar token ya utilizado: {}", token);
-            throw new IllegalArgumentException("Este token ya ha sido utilizado");
-        }
-
         // Validar expiración
         if (verificationToken.isExpired()) {
             log.warn("Intento de usar token expirado: {}", token);
@@ -82,9 +77,8 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
         user.setVerificatedEmail(true);
         userEntityRepository.save(user);
 
-        // Marcar token como usado
-        verificationToken.setUsed(true);
-        verificationTokenRepository.save(verificationToken);
+        // Eliminar token después de usarlo
+        verificationTokenRepository.delete(verificationToken);
 
         log.info("Email verificado exitosamente para usuario: {}", user.getEmail());
     }
@@ -92,7 +86,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
 
     @Override
     @Transactional
-    public void resendVerifiedEmail(String token) {
+    public void resendVerificationEmail(String email) {
 
         log.info("Reenviando email de verificación para: {}", email);
 
@@ -110,7 +104,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
         }
 
         // Crear y enviar nuevo token
-        createdAndSendVerificationEmail(user);
+        createAndSendVerificationEmail(user);
     }
 
     private void sendEmailVerification(String toEmail, String firstName, String verifyUrl) {
@@ -118,7 +112,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
         message.setFrom(fromEmail);
         message.setTo(toEmail);
         message.setSubject("Verifica tu cuenta - Infoplazas AIP");
-        message.setText(createdAndSendVerificationEmail(firstName, verifyUrl));
+        message.setText(construirMensajeVerificacion(firstName, verifyUrl));
 
         mailSender.send(message);
     }

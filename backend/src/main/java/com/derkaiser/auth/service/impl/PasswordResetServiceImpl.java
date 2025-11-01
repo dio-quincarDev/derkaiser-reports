@@ -3,6 +3,7 @@ package com.derkaiser.auth.service.impl;
 import com.derkaiser.auth.commons.model.entity.PasswordResetToken;
 import com.derkaiser.auth.commons.model.entity.UserEntity;
 import com.derkaiser.auth.repository.PasswordResetTokenRepository;
+import com.derkaiser.auth.repository.RefreshTokenRepository;
 import com.derkaiser.auth.repository.UserEntityRepository;
 import com.derkaiser.auth.service.PasswordResetService;
 import com.derkaiser.auth.service.RefreshTokenService;
@@ -27,6 +28,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final UserEntityRepository userEntityRepository;
     private final RefreshTokenService refreshTokenService;
+    private final RefreshTokenRepository refreshTokenRepository; // ⚠️ NUEVO
     private final PasswordEncoder passwordEncoder;
     private final JavaMailSender mailSender;
 
@@ -50,7 +52,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         }
 
         UserEntity user = userOptional.get();
-        passwordResetTokenRepository.deleteByUser(user);
+        passwordResetTokenRepository.deleteByUserEntity(user);
 
         PasswordResetToken resetToken = PasswordResetToken.create(user);
         passwordResetTokenRepository.save(resetToken);
@@ -84,12 +86,6 @@ public class PasswordResetServiceImpl implements PasswordResetService {
                     return new IllegalArgumentException("Token de reset inválido");
                 });
 
-        // Validar que no haya sido usado
-        if (resetToken.getUsed()) {
-            log.warn("Intento de usar token de reset ya utilizado: {}", token);
-            throw new IllegalArgumentException("Este token ya ha sido utilizado");
-        }
-
         // Validar expiración
         if (resetToken.isExpired()) {
             log.warn("Intento de usar token de reset expirado: {}", token);
@@ -103,13 +99,12 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         user.setPassword(passwordEncoder.encode(newPassword));
         userEntityRepository.save(user);
 
-
-        // Marcar token como usado
-        resetToken.setUsed(true);
-        passwordResetTokenRepository.save(resetToken);
+        // Eliminar token después de usarlo
+        passwordResetTokenRepository.delete(resetToken);
 
         // CRÍTICO: Invalidar todos los refresh tokens (cerrar todas las sesiones)
-        refreshTokenService.deleteAllUserTokens(user.getEmail());
+        // Como ahora es @OneToOne, eliminamos el token de refresh asociado al usuario
+        refreshTokenRepository.deleteByUserEntity(user);
 
         log.info("Password reseteado exitosamente para usuario: {} y sesiones cerradas", user.getEmail());
 
@@ -117,26 +112,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     }
 
 
-    @Override
-    @Transactional
-    public boolean tokenResetVerification(String token) {
 
-        log.info("Validando token de reset: {}", token);
-
-        Optional<PasswordResetToken> resetTokenOptional = passwordResetTokenRepository.findByToken(token);
-
-        if (resetTokenOptional.isEmpty()) {
-            log.info("Token no encontrado: {}", token);
-            return false;
-        }
-
-        PasswordResetToken resetToken = resetTokenOptional.get();
-
-        boolean valid = !resetToken.getUsed() && !resetToken.isExpired();
-
-        log.info("Token {} es válido: {}", token, valid);
-        return valid;
-    }
 
     private void sendPasswordEmailReset(String toEmail, String firstName, String resetUrl) {
         SimpleMailMessage message = new SimpleMailMessage();

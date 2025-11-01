@@ -1,8 +1,9 @@
 package com.derkaiser.auth.controller;
 
-import com.derkaiser.auth.commons.dto.request.LoginRequest;
-import com.derkaiser.auth.commons.dto.request.UserEntityRequest;
+import com.derkaiser.auth.commons.dto.request.*;
+import com.derkaiser.auth.commons.dto.response.MessageResponse;
 import com.derkaiser.auth.commons.dto.response.TokenResponse;
+import com.derkaiser.auth.commons.dto.response.UserResponse;
 import com.derkaiser.constants.ApiPathConstants;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -19,5 +20,23 @@ public interface AuthApi {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    ResponseEntity<String> getUser(@RequestAttribute(name = "X-User-Id") @Valid String userEntityId);
+    ResponseEntity<UserResponse> getUser();
+
+    @GetMapping("/verify")
+    ResponseEntity<MessageResponse> verifyEmail(@RequestParam String token);
+
+    @PostMapping("/resend-verification")
+    ResponseEntity<MessageResponse> resendVerification(@RequestBody @Valid ForgotPasswordRequest request);
+
+    @PostMapping("/forgot-password")
+    ResponseEntity<MessageResponse> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request);
+
+    @PostMapping("/reset-password")
+    ResponseEntity<MessageResponse> resetPassword(@RequestBody @Valid ResetPasswordRequest request);
+
+    @PostMapping("/refresh")
+    ResponseEntity<TokenResponse> refreshToken(@RequestBody @Valid RefreshTokenRequest request);
+
+    @PostMapping("/logout")
+    ResponseEntity<MessageResponse> logout(@RequestBody @Valid RefreshTokenRequest request);
 }

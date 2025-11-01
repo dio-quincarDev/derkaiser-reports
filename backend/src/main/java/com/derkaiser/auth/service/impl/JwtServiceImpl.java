@@ -20,9 +20,11 @@ public class JwtServiceImpl implements JwtService {
 
     private final SecretKey secretKey;
 
-    // ⚠️ NUEVAS CONSTANTES
-    private static final long ACCESS_TOKEN_EXPIRATION = 900_000; // 15 minutos
-    private static final long REFRESH_TOKEN_EXPIRATION = 604_800_000; // 7 días
+    @Value("${jwt.access-token.expiration:900000}") // 15 minutos en milisegundos
+    private long accessTokenExpiration;
+
+    @Value("${jwt.refresh-token.expiration:604800000}") // 7 días en milisegundos
+    private long refreshTokenExpiration;
 
     public JwtServiceImpl(@Value("${jwt.secret}") String secret) {
         if (secret.getBytes().length < 32) {
@@ -31,21 +33,13 @@ public class JwtServiceImpl implements JwtService {
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    // ⚠️ MANTENER MÉTODO EXISTENTE (para compatibilidad)
-    @Override
-    public TokenResponse generateToken(String email, String role) {
-        String accessToken = generateAccessToken(email, role);
 
-        return TokenResponse.builder()
-                .accessToken(accessToken)
-                .build();
-    }
 
     // ⚠️ NUEVO MÉTODO: Access Token (15 min)
     @Override
     public String generateAccessToken(String email, String role) {
         Date now = new Date();
-        Date expirationDate = new Date(now.getTime() + ACCESS_TOKEN_EXPIRATION);
+        Date expirationDate = new Date(now.getTime() + accessTokenExpiration);
 
         String normalizedRole = role.startsWith("ROLE_") ? role.substring(5) : role;
 
@@ -63,7 +57,7 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public String generateRefreshToken(String email) {
         Date now = new Date();
-        Date expirationDate = new Date(now.getTime() + REFRESH_TOKEN_EXPIRATION);
+        Date expirationDate = new Date(now.getTime() + refreshTokenExpiration);
 
         return Jwts.builder()
                 .subject(email)

@@ -28,7 +28,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     @Override
     @Transactional
-    public String createTokenRefresh(UserEntity userEntity) {
+    public String createRefreshToken(UserEntity userEntity) {
         log.info("Creando refresh token para usuario: {}", userEntity.getEmail());
 
         String tokenValue = jwtService.generateRefreshToken(userEntity.getEmail());
@@ -42,7 +42,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     @Override
     @Transactional
-    public TokenResponse refreshAndValidate(String refreshToken) {
+    public TokenResponse refreshAccessToken(String refreshToken) {
         log.info("Validando y refrescando access token");
 
         if (!jwtService.validateToken(refreshToken)) {
@@ -55,17 +55,17 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
                     log.warn("Refresh token no encontrado en base de datos");
                     return new IllegalArgumentException("Refresh token no encontrado");
                 });
-        if (tokenEntity.isExpired()) {
-            log.warn("Refresh token expirado para usuario: {}", tokenEntity.getUser().getEmail());
-            refreshTokenRepository.delete(tokenEntity);
+        if (toEntity.isExpired()) {
+            log.warn("Refresh token expirado para usuario: {}", toEntity.getUserEntity().getEmail());
+            refreshTokenRepository.delete(toEntity);
             throw new IllegalArgumentException("Refresh token expirado. Por favor, inicia sesión nuevamente");
         }
 
-        UserEntity user = tokenEntity.getUserEn();
+        UserEntity user = toEntity.getUserEntity();
 
         if (!user.getActive() || !user.getVerificatedEmail()) {
             log.warn("Usuario inactivo o no verificado intenta usar refresh token: {}", user.getEmail());
-            refreshTokenRepository.delete(tokenEntity);
+            refreshTokenRepository.delete(toEntity);
             throw new IllegalArgumentException("Tu cuenta no está activa o verificada");
         }
 
@@ -84,7 +84,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     @Override
     @Transactional
-    public void deleteTokenRefresh(String refreshToken) {
+    public void deleteByToken(String refreshToken) {
         log.info("Eliminando refresh token específico");
 
         refreshTokenRepository.findByToken(refreshToken)
@@ -93,20 +93,6 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
                     log.info("Refresh token eliminado para usuario: {}", token.getUserEntity().getEmail());
                 });
 
-    }
-
-    @Override
-    @Transactional
-    public void deleteAllUserTokens(String userEmail) {
-
-        log.info("Eliminando todos los refresh tokens para usuario: {}", email);
-
-        UserEntity user = userEntityRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
-
-        refreshTokenRepository.deleteAllByUser(user);
-
-        log.info("Todos los refresh tokens eliminados para usuario: {}", email);
     }
 
     @Override

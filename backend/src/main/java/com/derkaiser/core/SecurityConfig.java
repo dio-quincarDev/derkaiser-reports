@@ -1,6 +1,8 @@
 package com.derkaiser.core;
 
+import com.derkaiser.auth.config.JwtAccessDeniedHandler;
 import com.derkaiser.auth.config.JwtAuthFilter;
+import com.derkaiser.auth.config.JwtAuthenticationEntryPoint;
 import com.derkaiser.constants.ApiPathConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -28,6 +30,8 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
     private final UserDetailsService userDetailsService;
+    private final JwtAuthenticationEntryPoint authenticationEntryPoint; // ⚠️ NUEVO
+    private final JwtAccessDeniedHandler accessDeniedHandler; // ⚠️ NUEVO
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
