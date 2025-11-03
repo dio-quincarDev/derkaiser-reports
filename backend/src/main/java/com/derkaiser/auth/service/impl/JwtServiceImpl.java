@@ -1,7 +1,8 @@
 package com.derkaiser.auth.service.impl;
 
-import com.derkaiser.auth.commons.dto.response.TokenResponse;
 import com.derkaiser.auth.service.JwtService;
+import com.derkaiser.exceptions.auth.InvalidJwtTokenException;
+import com.derkaiser.exceptions.auth.MissingJwtClaimException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.Optional;
 
 @Service
 public class JwtServiceImpl implements JwtService {
@@ -91,7 +93,7 @@ public class JwtServiceImpl implements JwtService {
         } catch (Exception e) {
             log.error("Error al parsear JWT: {}, Causa: {}", e.getMessage(),
                     e.getCause() != null ? e.getCause().getMessage() : "N/A");
-            throw new IllegalArgumentException("Token JWT inválido o expirado", e);
+            throw new InvalidJwtTokenException("Token JWT inválido o expirado", e);
         }
     }
 
@@ -106,11 +108,13 @@ public class JwtServiceImpl implements JwtService {
 
     @Override
     public String extractRole(String token) {
-        return getClaims(token).get("role", String.class);
+        return Optional.ofNullable(getClaims(token).get("role", String.class))
+                .orElseThrow(() -> new MissingJwtClaimException("El claim 'role' es requerido en el token"));
     }
 
     @Override
     public String extractEmail(String token) {
-        return getClaims(token).getSubject();
+        return Optional.ofNullable(getClaims(token).getSubject())
+                .orElseThrow(() -> new MissingJwtClaimException("El claim 'subject' (email) es requerido en el token"));
     }
 }

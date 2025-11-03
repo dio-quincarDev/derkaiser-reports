@@ -7,7 +7,7 @@ import com.derkaiser.auth.commons.model.entity.UserEntity;
 import com.derkaiser.auth.commons.model.enums.UserRole;
 import com.derkaiser.auth.repository.UserEntityRepository;
 import com.derkaiser.auth.service.impl.AuthServiceImpl;
-import com.derkaiser.exceptions.DuplicateEmailException;
+import com.derkaiser.exceptions.auth.DuplicateEmailException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

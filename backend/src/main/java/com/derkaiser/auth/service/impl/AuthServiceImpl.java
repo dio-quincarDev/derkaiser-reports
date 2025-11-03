@@ -19,7 +19,7 @@ import com.derkaiser.auth.service.AuthService;
 import com.derkaiser.auth.service.EmailVerificationService;
 import com.derkaiser.auth.service.JwtService;
 import com.derkaiser.auth.service.RefreshTokenService;
-import com.derkaiser.exceptions.DuplicateEmailException;
+import com.derkaiser.exceptions.auth.DuplicateEmailException;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
