@@ -1,0 +1,5 @@
+# Ignorar archivos de entorno
+backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
