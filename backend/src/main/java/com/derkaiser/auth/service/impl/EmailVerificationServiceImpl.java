@@ -23,7 +23,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
     private final UserEntityRepository userEntityRepository;
     private final JavaMailSender mailSender;
 
-    @Value("${app.frontend.url:http://localhost:8080}")
+    @Value("${app.frontend.url}")
     private String frontendUrl;
 
     @Value("${spring.mail.username}")

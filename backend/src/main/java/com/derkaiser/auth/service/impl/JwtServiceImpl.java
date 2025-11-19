@@ -28,7 +28,7 @@ public class JwtServiceImpl implements JwtService {
     @Value("${jwt.refresh-token.expiration:604800000}") // 7 días en milisegundos
     private long refreshTokenExpiration;
 
-    public JwtServiceImpl(@Value("${jwt.secret}") String secret) {
+    public JwtServiceImpl(@Value("${jwt.secret:${JWT_SECRET}}") String secret) {
         if (secret.getBytes().length < 32) {
             throw new IllegalArgumentException("La clave secreta de JWT debe tener al menos 32 caracteres.");
         }

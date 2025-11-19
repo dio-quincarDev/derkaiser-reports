@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: Informes
+
+  # Configuración de JPA/Hibernate común
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # Configuración de seguridad
+  security:
+    user:
+      name: ${SECURITY_USER:admin}
+      password: ${SECURITY_PASSWORD:admin123}
+
+# Configuración de JWT (valores por defecto, se sobre escriben en perfiles)
+jwt:
+  header: Authorization
+  prefix: Bearer
+
+# Configuración de SpringDoc OpenAPI
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+    doc-expansion: none
+    filter: true
+  api-docs:
+    path: /v3/api-docs
+
+# Configuración general
+app:
+  security:
+    super-admin-registration:
+      enabled: false  # Valor por defecto, se activa en dev
+
+server:
+  port: 8080
