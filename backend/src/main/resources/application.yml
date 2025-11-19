@@ -1,6 +1,8 @@
 spring:
   application:
     name: Informes
+  profiles:
+    active: dev
 
   # Configuración de JPA/Hibernate común
   jpa:
@@ -13,6 +15,19 @@ spring:
     user:
       name: ${SECURITY_USER:admin}
       password: ${SECURITY_PASSWORD:admin123}
+
+  # Configuración básica de mail
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${SPRING_MAIL_USERNAME:admin@yourapp.com}
+    password: ${SPRING_MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 # Configuración de JWT (valores por defecto, se sobre escriben en perfiles)
 jwt:
@@ -35,6 +50,8 @@ app:
   security:
     super-admin-registration:
       enabled: false  # Valor por defecto, se activa en dev
+  frontend:
+    url: ${APP_FRONTEND_URL:http://localhost:9000}  # Valor por defecto para desarrollo (Quasar)
 
 server:
   port: 8080

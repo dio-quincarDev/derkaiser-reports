@@ -178,6 +178,14 @@ La API estará disponible en `http://localhost:8080`. Puedes acceder a la docume
 - Documentación: `http://localhost:8080/swagger-ui.html`
 - Documentación API: `http://localhost:8080/v3/api-docs`
 
+### Documentación de la API
+
+La API está completamente documentada con OpenAPI 3.0 y Swagger. La configuración incluye:
+- Autenticación JWT con Bearer Token
+- Descripciones detalladas de endpoints
+- Modelos de datos documentados
+- Parámetros y respuestas esperadas
+
 ## Pruebas
 
 Para ejecutar las pruebas unitarias:

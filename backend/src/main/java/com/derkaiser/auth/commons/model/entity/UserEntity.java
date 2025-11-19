@@ -40,20 +40,41 @@ public class UserEntity implements UserDetails {
     @Enumerated(EnumType.STRING)
     private UserRole role ;
 
-    @Column(nullable = false)
-    private Boolean active = true;
+        @Builder.Default
 
-    @Column(nullable = false)
-    private Boolean verificatedEmail = false;
+        @Column(nullable = false)
 
-    @Column(nullable = false)
-    private String cargo;
+        private Boolean active = true;
 
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    
 
-    @Column(nullable = false)
-    private LocalDateTime updatedAt = LocalDateTime.now();
+        @Builder.Default
+
+        @Column(nullable = false)
+
+        private Boolean verificatedEmail = false;
+
+    
+
+        @Column(nullable = false)
+
+        private String cargo;
+
+    
+
+        @Builder.Default
+
+        @Column(nullable = false, updatable = false)
+
+        private LocalDateTime createdAt = LocalDateTime.now();
+
+    
+
+        @Builder.Default
+
+        @Column(nullable = false)
+
+        private LocalDateTime updatedAt = LocalDateTime.now();
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

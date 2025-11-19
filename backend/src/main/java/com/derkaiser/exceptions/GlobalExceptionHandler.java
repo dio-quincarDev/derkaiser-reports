@@ -35,6 +35,13 @@ public class GlobalExceptionHandler {
     // Generic exception handler for any unhandled exceptions
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
+        // Evitar manejar excepciones específicas de endpoints de OpenAPI
+        String exceptionMessage = ex.getMessage() != null ? ex.getMessage() : "";
+        if (exceptionMessage.contains("api-docs") || exceptionMessage.contains("v3/api-docs") ||
+            exceptionMessage.contains("swagger") || exceptionMessage.contains("openapi")) {
+            // No manejar excepciones relacionadas con OpenAPI, dejar que SpringDoc las maneje
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
+        }
         ErrorResponse errorResponse = new ErrorResponse("INTERNAL_SERVER_ERROR", "Ha ocurrido un error inesperado.");
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
