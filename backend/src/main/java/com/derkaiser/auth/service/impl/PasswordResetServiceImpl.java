@@ -8,6 +8,7 @@ import com.derkaiser.auth.repository.UserEntityRepository;
 import com.derkaiser.auth.service.PasswordResetService;
 import com.derkaiser.auth.service.RefreshTokenService;
 import com.derkaiser.auth.util.RateLimitUtils;
+import com.derkaiser.exceptions.auth.InvalidPasswordResetTokenException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -97,13 +98,13 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
                 .orElseThrow(() -> {
                     log.warn("Token de reset no encontrado: {}", token);
-                    return new IllegalArgumentException("Token de reset inválido");
+                    return new InvalidPasswordResetTokenException("Token de reset inválido");
                 });
 
         // Validar expiración
         if (resetToken.isExpired()) {
             log.warn("Intento de usar token de reset expirado: {}", token);
-            throw new IllegalArgumentException("El token ha expirado. Solicita un nuevo enlace de reset");
+            throw new InvalidPasswordResetTokenException("El token ha expirado. Solicita un nuevo enlace de reset");
         }
 
         // Obtener usuario

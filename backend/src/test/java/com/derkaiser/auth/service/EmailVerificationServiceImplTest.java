@@ -5,6 +5,7 @@ import com.derkaiser.auth.commons.model.entity.VerificationToken;
 import com.derkaiser.auth.repository.UserEntityRepository;
 import com.derkaiser.auth.repository.VerificationTokenRepository;
 import com.derkaiser.auth.service.impl.EmailVerificationServiceImpl;
+import com.derkaiser.exceptions.auth.UserNotVerifiedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -123,7 +124,7 @@ class EmailVerificationServiceImplTest {
     void emailVerification_shouldThrowExceptionWhenTokenNotFound() {
         when(verificationTokenRepository.findByToken(anyString())).thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        UserNotVerifiedException exception = assertThrows(UserNotVerifiedException.class,
                 () -> emailVerificationService.emailVerification("non-existent-token"));
 
         assertEquals("Token de verificación inválido", exception.getMessage());
@@ -137,7 +138,7 @@ class EmailVerificationServiceImplTest {
         verificationToken.setExpiryDate(LocalDateTime.now().minusHours(1)); // Set token as expired
         when(verificationTokenRepository.findByToken(anyString())).thenReturn(Optional.of(verificationToken));
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        UserNotVerifiedException exception = assertThrows(UserNotVerifiedException.class,
                 () -> emailVerificationService.emailVerification("expired-token"));
 
         assertEquals("El token ha expirado. Solicita un nuevo email de verificación", exception.getMessage());
@@ -179,7 +180,7 @@ class EmailVerificationServiceImplTest {
         user.setVerificatedEmail(true);
         when(userEntityRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        UserNotVerifiedException exception = assertThrows(UserNotVerifiedException.class,
                 () -> emailVerificationService.resendVerificationEmail("test@test.com"));
 
         assertEquals("Este email ya está verificado", exception.getMessage());

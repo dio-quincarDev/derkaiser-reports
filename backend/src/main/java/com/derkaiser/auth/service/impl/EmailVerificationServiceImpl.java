@@ -5,6 +5,7 @@ import com.derkaiser.auth.commons.model.entity.VerificationToken;
 import com.derkaiser.auth.repository.UserEntityRepository;
 import com.derkaiser.auth.repository.VerificationTokenRepository;
 import com.derkaiser.auth.service.EmailVerificationService;
+import com.derkaiser.exceptions.auth.UserNotVerifiedException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -12,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -52,7 +54,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
         }
 
     }
-
+    // En el método emailVerification
     @Override
     @Transactional
     public void emailVerification(String token) {
@@ -62,24 +64,21 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
         VerificationToken verificationToken = verificationTokenRepository.findByToken(token)
                 .orElseThrow(() -> {
                     log.warn("Token de verificación no encontrado: {}", token);
-                    return new IllegalArgumentException("Token de verificación inválido");
+                    return new UserNotVerifiedException("Token de verificación inválido");
                 });
 
         // Validar expiración
         if (verificationToken.isExpired()) {
             log.warn("Intento de usar token expirado: {}", token);
-            throw new IllegalArgumentException("El token ha expirado. Solicita un nuevo email de verificación");
+            throw new UserNotVerifiedException("El token ha expirado. Solicita un nuevo email de verificación");
         }
 
-        // Activar usuario
+        // Resto del código permanece igual...
         UserEntity user = verificationToken.getUserEntity();
         user.setActive(true);
         user.setVerificatedEmail(true);
         userEntityRepository.save(user);
-
-        // Eliminar token después de usarlo
         verificationTokenRepository.delete(verificationToken);
-
         log.info("Email verificado exitosamente para usuario: {}", user.getEmail());
     }
 
@@ -94,13 +93,13 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
         UserEntity user = userEntityRepository.findByEmail(email)
                 .orElseThrow(() -> {
                     log.warn("Usuario no encontrado al reenviar verificación: {}", email);
-                    return new IllegalArgumentException("Usuario no encontrado");
+                    return new UserNotVerifiedException("Usuario no encontrado");
                 });
 
         // Validar que no esté ya verificado
         if (user.getVerificatedEmail()) {
             log.warn("Intento de reenviar verificación a email ya verificado: {}", email);
-            throw new IllegalArgumentException("Este email ya está verificado");
+            throw new UserNotVerifiedException("Este email ya está verificado");
         }
 
         // Crear y enviar nuevo token

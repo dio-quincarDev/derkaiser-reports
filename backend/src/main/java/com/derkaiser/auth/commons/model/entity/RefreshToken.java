@@ -23,7 +23,7 @@ public class RefreshToken {
     @Column(nullable = false, unique = true, length = 500)
     private String token;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity userEntity;
 

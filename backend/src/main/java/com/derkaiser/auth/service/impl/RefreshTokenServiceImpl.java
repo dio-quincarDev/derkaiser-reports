@@ -50,57 +50,103 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     public TokenResponse refreshAccessToken(String refreshToken) {
         log.info("Validando y refrescando access token con rotación");
 
-        // Validar token JWT
+        // Validar token JWT primero
         if (!jwtService.validateToken(refreshToken)) {
             log.warn("Refresh token JWT inválido o expirado");
             throw new IllegalArgumentException("Refresh token inválido o expirado");
         }
 
-        RefreshToken existingToken = refreshTokenRepository.findByToken(refreshToken)
-                .orElseThrow(()-> {
-                    log.warn("Refresh token no encontrado en base de datos");
-                    return new IllegalArgumentException("Refresh token no encontrado");
-                });
+        RefreshToken existingToken = null;
+        UserEntity userEntity = null;
+
+        try {
+            // Primero intentamos con JOIN FETCH
+            existingToken = refreshTokenRepository.findByTokenWithUser(refreshToken).orElse(null);
+
+            if (existingToken != null && existingToken.getUserEntity() != null) {
+                userEntity = existingToken.getUserEntity();
+            } else {
+                // Si la carga con JOIN FETCH falla, intentamos cargar el refresh token y luego forzamos la carga del usuario
+                existingToken = refreshTokenRepository.findByToken(refreshToken).orElse(null);
+                if (existingToken != null) {
+                    // Forzamos la carga del userEntity en la sesión actual
+                    userEntity = existingToken.getUserEntity();
+                    if (userEntity != null) {
+                        // Aseguramos que los datos del usuario estén disponibles
+                        userEntity.getId();
+                        userEntity.getEmail();
+                        userEntity.getRole();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Error al recuperar refresh token con usuario: {}", e.getMessage());
+            throw new IllegalArgumentException("Error al procesar el refresh token", e);
+        }
+
+        // Validar que ambas entidades estén disponibles
+        if (existingToken == null) {
+            log.warn("Refresh token no encontrado en base de datos");
+            throw new IllegalArgumentException("Refresh token no encontrado");
+        }
+
+        if (userEntity == null) {
+            log.warn("Refresh token encontrado pero el usuario asociado es nulo para token: {}", refreshToken);
+            throw new IllegalArgumentException("Refresh token inválido - Usuario asociado es nulo");
+        }
+
+        // Validar campos esenciales del usuario
+        if (userEntity.getId() == null || userEntity.getEmail() == null) {
+            log.warn("Usuario asociado incompleto - ID o email nulo para token: {}", refreshToken);
+            throw new IllegalArgumentException("Refresh token inválido - Usuario asociado incompleto");
+        }
+
+        // Verificar expiración en la base de datos
         if (existingToken.isExpired()) {
-            log.warn("Refresh token expirado para usuario: {}", existingToken.getUserEntity().getEmail());
+            String userEmail = userEntity.getEmail(); // Acceso seguro ya validado
+            log.warn("Refresh token expirado para usuario: {}", userEmail);
             refreshTokenRepository.delete(existingToken);
-            jwtService.blacklistToken(refreshToken, "REFRESH"); // Añadir a la lista negra
+
+            // SOLUCIÓN: Solo blacklist si el token JWT no está expirado
+            if (!jwtService.isExpired(refreshToken)) {
+                jwtService.blacklistToken(refreshToken, "REFRESH");
+            }
+
             throw new IllegalArgumentException("Refresh token expirado. Por favor, inicia sesión nuevamente");
         }
 
-        UserEntity user = existingToken.getUserEntity();
-
-        if (!user.getActive()) {
-            log.warn("Usuario inactivo intenta usar refresh token: {}", user.getEmail());
+        // Validar estado del usuario
+        if (!userEntity.getActive()) {
+            log.warn("Usuario inactivo intenta usar refresh token: {}", userEntity.getEmail());
             refreshTokenRepository.delete(existingToken);
-            jwtService.blacklistToken(refreshToken, "REFRESH"); // Añadir a la lista negra
+            jwtService.blacklistToken(refreshToken, "REFRESH");
             throw new UserInactiveException("Tu cuenta no está activa");
         }
 
-        if (!user.getVerificatedEmail()) {
-            log.warn("Usuario no verificado intenta usar refresh token: {}", user.getEmail());
+        if (!userEntity.getVerificatedEmail()) {
+            log.warn("Usuario no verificado intenta usar refresh token: {}", userEntity.getEmail());
             refreshTokenRepository.delete(existingToken);
-            jwtService.blacklistToken(refreshToken, "REFRESH"); // Añadir a la lista negra
+            jwtService.blacklistToken(refreshToken, "REFRESH");
             throw new UserNotVerifiedException("Tu cuenta no está verificada. Por favor revisa tu email para verificarla.");
         }
 
         // Generar nuevo access token
-        String newAccessToken = jwtService.generateAccessToken(user.getEmail(), user.getRole().name());
+        String newAccessToken = jwtService.generateAccessToken(userEntity.getEmail(), userEntity.getRole().name());
 
         // Rotación: invalidar el token actual y crear uno nuevo
-        jwtService.blacklistToken(refreshToken, "REFRESH"); // Añadir el token actual a la lista negra
-        refreshTokenRepository.delete(existingToken); // Eliminar de la base de datos
+        jwtService.blacklistToken(refreshToken, "REFRESH");
+        refreshTokenRepository.delete(existingToken);
 
         // Crear nuevo refresh token
-        String newRefreshToken = createRefreshToken(user); // Usar el método existente
+        String newRefreshToken = createRefreshToken(userEntity);
 
-        log.info("Token rotado exitosamente para usuario: {}", user.getEmail());
+        log.info("Token rotado exitosamente para usuario: {}", userEntity.getEmail());
 
         return TokenResponse.builder()
                 .accessToken(newAccessToken)
-                .refreshToken(newRefreshToken) // Nuevo token en lugar del anterior
+                .refreshToken(newRefreshToken)
                 .tokenType("Bearer")
-                .expiresIn(900_000L) // 15 minutos
+                .expiresIn(900_000L)
                 .build();
     }
 
@@ -109,12 +155,13 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     public void deleteByToken(String refreshToken) {
         log.info("Eliminando refresh token específico");
 
-        refreshTokenRepository.findByToken(refreshToken)
+        refreshTokenRepository.findByTokenWithUser(refreshToken)
                 .ifPresent(token -> {
                     // Primero añadir a la lista negra antes de eliminar de la base de datos
                     jwtService.blacklistToken(refreshToken, "REFRESH");
                     refreshTokenRepository.delete(token);
-                    log.info("Refresh token eliminado y añadido a lista negra para usuario: {}", token.getUserEntity().getEmail());
+                    String userEmail = token.getUserEntity() != null ? token.getUserEntity().getEmail() : "unknown";
+                    log.info("Refresh token eliminado y añadido a lista negra para usuario: {}", userEmail);
                 });
 
     }

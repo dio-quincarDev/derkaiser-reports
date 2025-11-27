@@ -1,12 +1,10 @@
 package com.derkaiser.exceptions;
 
 import com.derkaiser.auth.commons.dto.response.ErrorResponse;
-import com.derkaiser.exceptions.auth.DuplicateEmailException;
-import com.derkaiser.exceptions.auth.InvalidJwtTokenException;
-import com.derkaiser.exceptions.auth.MissingJwtClaimException;
-import com.derkaiser.exceptions.auth.UserNotVerifiedException;
+import com.derkaiser.exceptions.auth.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -37,22 +35,28 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
     }
 
-    @ExceptionHandler(org.springframework.security.authentication.DisabledException.class)
-    public ResponseEntity<ErrorResponse> handleDisabledUserException(org.springframework.security.authentication.DisabledException ex) {
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<ErrorResponse> handleDisabledUserException(DisabledException ex) {
         ErrorResponse errorResponse = new ErrorResponse("USER_ACCOUNT_DISABLED", "Tu cuenta no está activa o verificada");
         return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
     }
 
-    @ExceptionHandler(com.derkaiser.exceptions.auth.RateLimitExceededException.class)
-    public ResponseEntity<ErrorResponse> handleRateLimitExceededException(com.derkaiser.exceptions.auth.RateLimitExceededException ex) {
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ErrorResponse> handleRateLimitExceededException(RateLimitExceededException ex) {
         ErrorResponse errorResponse = new ErrorResponse("RATE_LIMIT_EXCEEDED", ex.getMessage());
         return new ResponseEntity<>(errorResponse, HttpStatus.TOO_MANY_REQUESTS);
     }
 
-    @ExceptionHandler(com.derkaiser.exceptions.auth.UserInactiveException.class)
-    public ResponseEntity<ErrorResponse> handleUserInactiveException(com.derkaiser.exceptions.auth.UserInactiveException ex) {
+    @ExceptionHandler(UserInactiveException.class)
+    public ResponseEntity<ErrorResponse> handleUserInactiveException(UserInactiveException ex) {
         ErrorResponse errorResponse = new ErrorResponse("USER_INACTIVE", ex.getMessage());
         return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(InvalidPasswordResetTokenException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidPasswordResetTokenException(InvalidPasswordResetTokenException ex) {
+        ErrorResponse errorResponse = new ErrorResponse("INVALID_RESET_TOKEN", ex.getMessage());
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
     // Add more exception handlers as needed
