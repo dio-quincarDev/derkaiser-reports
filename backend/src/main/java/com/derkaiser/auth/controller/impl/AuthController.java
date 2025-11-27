@@ -14,6 +14,7 @@ import com.derkaiser.auth.service.EmailVerificationService;
 import com.derkaiser.auth.service.PasswordResetService;
 import com.derkaiser.auth.service.RefreshTokenService;
 import com.derkaiser.auth.service.UserManagementService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 
 @RestController
@@ -84,7 +87,28 @@ public class AuthController implements AuthApi {
 
     @Override
     public ResponseEntity<MessageResponse> logout(@Valid RefreshTokenRequest request) {
-        refreshTokenService.deleteByToken(request.getRefreshToken());
+        // Extraer el token de acceso del header de la solicitud actual
+        String accessToken = extractAccessTokenFromRequest();
+
+        // Llamar al servicio de autenticación para hacer logout completo
+        authService.logout(accessToken, request.getRefreshToken());
         return ResponseEntity.ok(MessageResponse.of("Sesión cerrada exitosamente."));
+    }
+
+    private String extractAccessTokenFromRequest() {
+        try {
+            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attrs != null) {
+                HttpServletRequest request = attrs.getRequest();
+                String authHeader = request.getHeader("Authorization");
+                if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                    return authHeader.substring(7);
+                }
+            }
+        } catch (Exception e) {
+            // Si no se puede extraer el token, se registra pero no se interrumpe el proceso
+            org.slf4j.LoggerFactory.getLogger(AuthController.class).warn("Error al extraer token de acceso para logout: {}", e.getMessage());
+        }
+        return null;
     }
 }

@@ -22,6 +22,9 @@ Este módulo gestiona todo lo relacionado con la autenticación y autorización 
 -   **Recuperación de Contraseña:** Flujo completo para que los usuarios puedan resetear su contraseña de forma segura.
 -   **Refresco de Tokens:** Mecanismo para obtener nuevos Access Tokens utilizando Refresh Tokens, manteniendo la sesión activa sin necesidad de re-autenticación.
 -   **Cierre de Sesión (Logout):** Invalidación de Refresh Tokens para terminar sesiones de forma segura.
+-   **Lista Negra de Tokens:** Mecanismo para invalidar permanentemente tokens JWT en el cierre de sesión, previniendo su uso indebido incluso si aún no han expirado.
+-   **Rotación de Tokens:** Implementación de rotación de tokens de refresco para prevenir ataques de robo, donde cada uso de un refresh token genera un nuevo token y el anterior es invalidado.
+-   **Límite de Intentos (Rate Limiting):** Sistema de protección contra ataques de fuerza bruta para endpoints críticos como login, registro y recuperación de contraseña, limitando intentos por IP y por email.
 -   **Seguridad Robusta:** Implementación de Spring Security con filtros JWT, manejo de excepciones de autenticación/autorización y codificación de contraseñas (BCrypt).
 -   **API RESTful:** Endpoints claros y bien definidos para cada operación de autenticación.
 -   **Gestión de Roles:** Soporte para roles de usuario (USER, ADMIN) con autorización basada en roles.
@@ -131,6 +134,25 @@ El sistema implementa las siguientes medidas de seguridad:
 4. **Control de Acceso**: Verificación de roles y permisos para endpoints protegidos
 5. **Verificación de Email**: Los usuarios deben verificar su correo antes de acceder
 6. **Tokens de Refresco**: Almacenados en base de datos con expiración y limpieza automática
+7. **Lista Negra de Tokens**: Tokens invalidados se almacenan para prevenir su reutilización
+8. **Rotación de Tokens**: Cada uso de refresh token genera uno nuevo y invalida el anterior
+9. **Rate Limiting**: Protección contra múltiples intentos fallidos en endpoints críticos
+
+## Seguridad Avanzada
+
+### Lista Negra de Tokens
+Implementación de una lista negra (blacklisting) para tokens JWT que permite invalidar tokens de forma inmediata e irreversible durante el logout. Esto resuelve el problema de que los tokens de acceso válidos sigan siendo utilizables incluso después de cerrar sesión.
+
+### Rotación de Tokens de Refresco
+Sistema de rotación donde cada refresh token es de un solo uso. Al solicitar un nuevo access token, se invalida el refresh token actual y se emite uno nuevo, previniendo ataques de robo de tokens.
+
+### Límite de Intentos (Rate Limiting)
+Sistema de protección que limita la cantidad de solicitudes a endpoints críticos:
+- Login: Máximo 5 intentos fallidos por email en 5 minutos
+- Registro: Máximo 5 intentos por IP en 5 minutos
+- Recuperación de contraseña: Máximo 5 intentos por email en 5 minutos
+
+Esta protección previene ataques de fuerza bruta, envío masivo de emails y creación de cuentas maliciosas.
 
 ## Cómo Empezar
 

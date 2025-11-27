@@ -46,6 +46,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         try {
             userEmail = jwtService.extractEmail(jwt);
+
+            // Verificar si el token está en la lista negra
+            if (jwtService.isTokenBlacklisted(jwt)) {
+                log.warn("Token JWT en lista negra");
+                filterChain.doFilter(request, response); // Continuar sin autenticar
+                return;
+            }
         } catch (Exception e) {
             log.warn("Token JWT inválido o expirado: {}", e.getMessage());
             filterChain.doFilter(request, response); // Continuar sin autenticar

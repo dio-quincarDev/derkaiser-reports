@@ -1,5 +1,7 @@
 package com.derkaiser.auth.service.impl;
 
+import com.derkaiser.auth.commons.model.entity.BlacklistedToken;
+import com.derkaiser.auth.repository.BlacklistedTokenRepository;
 import com.derkaiser.auth.service.JwtService;
 import com.derkaiser.exceptions.auth.InvalidJwtTokenException;
 import com.derkaiser.exceptions.auth.MissingJwtClaimException;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.Optional;
 
@@ -21,6 +24,7 @@ public class JwtServiceImpl implements JwtService {
     private static final Logger log = LoggerFactory.getLogger(JwtServiceImpl.class);
 
     private final SecretKey secretKey;
+    private final BlacklistedTokenRepository blacklistedTokenRepository;
 
     @Value("${jwt.access-token.expiration:900000}") // 15 minutos en milisegundos
     private long accessTokenExpiration;
@@ -28,11 +32,13 @@ public class JwtServiceImpl implements JwtService {
     @Value("${jwt.refresh-token.expiration:604800000}") // 7 días en milisegundos
     private long refreshTokenExpiration;
 
-    public JwtServiceImpl(@Value("${jwt.secret:${JWT_SECRET}}") String secret) {
+    public JwtServiceImpl(@Value("${jwt.secret:${JWT_SECRET}}") String secret,
+                          BlacklistedTokenRepository blacklistedTokenRepository) {
         if (secret.getBytes().length < 32) {
             throw new IllegalArgumentException("La clave secreta de JWT debe tener al menos 32 caracteres.");
         }
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.blacklistedTokenRepository = blacklistedTokenRepository;
     }
 
 
@@ -74,8 +80,19 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public boolean validateToken(String token) {
         try {
+            // Verificar si el token está expirado
+            if (isExpired(token)) {
+                return false;
+            }
+
+            // Verificar si el token está en la lista negra
+            if (isTokenBlacklisted(token)) {
+                log.warn("Token encontrado en lista negra: {}", token);
+                return false;
+            }
+
             getClaims(token);
-            return !isExpired(token);
+            return true;
         } catch (Exception e) {
             log.warn("Token inválido: {}", e.getMessage());
             return false;
@@ -116,5 +133,33 @@ public class JwtServiceImpl implements JwtService {
     public String extractEmail(String token) {
         return Optional.ofNullable(getClaims(token).getSubject())
                 .orElseThrow(() -> new MissingJwtClaimException("El claim 'subject' (email) es requerido en el token"));
+    }
+
+    @Override
+    public void blacklistToken(String token, String tokenType) {
+        log.info("Añadiendo token a la lista negra: {} (tipo: {})", token, tokenType);
+
+        // Extraer la fecha de expiración del token para usarla en la lista negra
+        try {
+            Claims claims = getClaims(token);
+            Date expirationDate = claims.getExpiration();
+
+            BlacklistedToken.TokenType type = "ACCESS".equals(tokenType.toUpperCase()) ?
+                    BlacklistedToken.TokenType.ACCESS : BlacklistedToken.TokenType.REFRESH;
+
+            BlacklistedToken blacklistedToken = BlacklistedToken.create(token, type,
+                    expirationDate.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime());
+
+            blacklistedTokenRepository.save(blacklistedToken);
+            log.info("Token añadido exitosamente a la lista negra: {}", token);
+        } catch (Exception e) {
+            log.error("Error al añadir token a la lista negra: {}", e.getMessage());
+            throw new RuntimeException("Error al intentar invalidar token", e);
+        }
+    }
+
+    @Override
+    public boolean isTokenBlacklisted(String token) {
+        return blacklistedTokenRepository.existsByToken(token);
     }
 }

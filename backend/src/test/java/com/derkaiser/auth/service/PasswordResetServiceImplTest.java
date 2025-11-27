@@ -6,6 +6,7 @@ import com.derkaiser.auth.repository.PasswordResetTokenRepository;
 import com.derkaiser.auth.repository.RefreshTokenRepository;
 import com.derkaiser.auth.repository.UserEntityRepository;
 import com.derkaiser.auth.service.impl.PasswordResetServiceImpl;
+import com.derkaiser.auth.util.RateLimitUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,6 +46,9 @@ class PasswordResetServiceImplTest {
     @Mock
     private JavaMailSender mailSender;
 
+    @Mock
+    private RateLimitUtils rateLimitUtils;
+
     @InjectMocks
     private PasswordResetServiceImpl passwordResetService;
 
@@ -73,6 +77,9 @@ class PasswordResetServiceImplTest {
 
     @Test
     void passwordResetRequest_shouldSendEmailWhenUserExists() {
+        // Mock rate limiting to allow the request
+        when(rateLimitUtils.isAllowed(anyString())).thenReturn(true);
+
         when(userEntityRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(passwordResetTokenRepository.save(any(PasswordResetToken.class))).thenReturn(passwordResetToken);
         doNothing().when(mailSender).send(any(SimpleMailMessage.class));
@@ -83,10 +90,15 @@ class PasswordResetServiceImplTest {
         verify(passwordResetTokenRepository, times(1)).deleteByUserEntity(user);
         verify(passwordResetTokenRepository, times(1)).save(any(PasswordResetToken.class));
         verify(mailSender, times(1)).send(any(SimpleMailMessage.class));
+        verify(rateLimitUtils, times(1)).isAllowed(anyString()); // Should check rate limit
+        verify(rateLimitUtils, times(1)).recordSuccess(anyString()); // Should record success
     }
 
     @Test
     void passwordResetRequest_shouldReturnSilentlyWhenUserNotFound() {
+        // Mock rate limiting to allow the request initially
+        when(rateLimitUtils.isAllowed(anyString())).thenReturn(true);
+
         when(userEntityRepository.findByEmail(anyString())).thenReturn(Optional.empty());
 
         passwordResetService.passwordResetRequest("nonexistent@test.com");
@@ -95,10 +107,15 @@ class PasswordResetServiceImplTest {
         verify(passwordResetTokenRepository, never()).deleteByUserEntity(any());
         verify(passwordResetTokenRepository, never()).save(any());
         verify(mailSender, never()).send(any(SimpleMailMessage.class));
+        verify(rateLimitUtils, times(1)).isAllowed(anyString()); // Should check rate limit
+        verify(rateLimitUtils, times(1)).recordFailure(anyString()); // Should record failure as protection against enumeration
     }
 
     @Test
     void passwordResetRequest_shouldNotThrowExceptionWhenEmailSendingFails() {
+        // Mock rate limiting to allow the request initially
+        when(rateLimitUtils.isAllowed(anyString())).thenReturn(true);
+
         when(userEntityRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(passwordResetTokenRepository.save(any(PasswordResetToken.class))).thenReturn(passwordResetToken);
         doThrow(new MailSendException("Failed to send")).when(mailSender).send(any(SimpleMailMessage.class));
@@ -106,6 +123,9 @@ class PasswordResetServiceImplTest {
         assertDoesNotThrow(() -> passwordResetService.passwordResetRequest("test@test.com"));
 
         verify(mailSender, times(1)).send(any(SimpleMailMessage.class));
+        verify(rateLimitUtils, times(1)).isAllowed(anyString()); // Should check rate limit
+        // When email sending fails, recordSuccess is NOT called, which is correct behavior
+        verify(rateLimitUtils, never()).recordSuccess(anyString()); // Should not record success when email fails
     }
 
     @Test

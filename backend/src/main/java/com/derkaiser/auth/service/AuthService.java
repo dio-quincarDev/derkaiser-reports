@@ -7,7 +7,7 @@ import com.derkaiser.auth.commons.dto.response.TokenResponse;
 public interface AuthService {
     TokenResponse createUser(UserEntityRequest userEntityRequest);
     TokenResponse login(LoginRequest loginRequest);
-
+    void logout(String accessToken, String refreshToken);
 
     String getCurrentUserEmail();
 }

@@ -1,8 +1,10 @@
 package com.derkaiser.auth.service.impl;
 
 import com.derkaiser.auth.commons.dto.response.TokenResponse;
+import com.derkaiser.auth.commons.model.entity.BlacklistedToken;
 import com.derkaiser.auth.commons.model.entity.RefreshToken;
 import com.derkaiser.auth.commons.model.entity.UserEntity;
+import com.derkaiser.auth.repository.BlacklistedTokenRepository;
 import com.derkaiser.auth.repository.RefreshTokenRepository;
 import com.derkaiser.auth.repository.UserEntityRepository;
 import com.derkaiser.auth.service.JwtService;
@@ -25,6 +27,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserEntityRepository userEntityRepository;
     private final JwtService jwtService;
+    private final BlacklistedTokenRepository blacklistedTokenRepository;
 
     @Override
     @Transactional
@@ -43,40 +46,50 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     @Override
     @Transactional
     public TokenResponse refreshAccessToken(String refreshToken) {
-        log.info("Validando y refrescando access token");
+        log.info("Validando y refrescando access token con rotación");
 
+        // Validar token JWT
         if (!jwtService.validateToken(refreshToken)) {
             log.warn("Refresh token JWT inválido o expirado");
             throw new IllegalArgumentException("Refresh token inválido o expirado");
         }
 
-        RefreshToken toEntity = refreshTokenRepository.findByToken(refreshToken)
+        RefreshToken existingToken = refreshTokenRepository.findByToken(refreshToken)
                 .orElseThrow(()-> {
                     log.warn("Refresh token no encontrado en base de datos");
                     return new IllegalArgumentException("Refresh token no encontrado");
                 });
-        if (toEntity.isExpired()) {
-            log.warn("Refresh token expirado para usuario: {}", toEntity.getUserEntity().getEmail());
-            refreshTokenRepository.delete(toEntity);
+        if (existingToken.isExpired()) {
+            log.warn("Refresh token expirado para usuario: {}", existingToken.getUserEntity().getEmail());
+            refreshTokenRepository.delete(existingToken);
+            jwtService.blacklistToken(refreshToken, "REFRESH"); // Añadir a la lista negra
             throw new IllegalArgumentException("Refresh token expirado. Por favor, inicia sesión nuevamente");
         }
 
-        UserEntity user = toEntity.getUserEntity();
+        UserEntity user = existingToken.getUserEntity();
 
         if (!user.getActive() || !user.getVerificatedEmail()) {
             log.warn("Usuario inactivo o no verificado intenta usar refresh token: {}", user.getEmail());
-            refreshTokenRepository.delete(toEntity);
+            refreshTokenRepository.delete(existingToken);
+            jwtService.blacklistToken(refreshToken, "REFRESH"); // Añadir a la lista negra
             throw new IllegalArgumentException("Tu cuenta no está activa o verificada");
         }
 
         // Generar nuevo access token
         String newAccessToken = jwtService.generateAccessToken(user.getEmail(), user.getRole().name());
 
-        log.info("Nuevo access token generado para usuario: {}", user.getEmail());
+        // Rotación: invalidar el token actual y crear uno nuevo
+        jwtService.blacklistToken(refreshToken, "REFRESH"); // Añadir el token actual a la lista negra
+        refreshTokenRepository.delete(existingToken); // Eliminar de la base de datos
+
+        // Crear nuevo refresh token
+        String newRefreshToken = createRefreshToken(user); // Usar el método existente
+
+        log.info("Token rotado exitosamente para usuario: {}", user.getEmail());
 
         return TokenResponse.builder()
                 .accessToken(newAccessToken)
-                .refreshToken(refreshToken) // Mismo refresh token
+                .refreshToken(newRefreshToken) // Nuevo token en lugar del anterior
                 .tokenType("Bearer")
                 .expiresIn(900_000L) // 15 minutos
                 .build();
@@ -89,8 +102,10 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
         refreshTokenRepository.findByToken(refreshToken)
                 .ifPresent(token -> {
+                    // Primero añadir a la lista negra antes de eliminar de la base de datos
+                    jwtService.blacklistToken(refreshToken, "REFRESH");
                     refreshTokenRepository.delete(token);
-                    log.info("Refresh token eliminado para usuario: {}", token.getUserEntity().getEmail());
+                    log.info("Refresh token eliminado y añadido a lista negra para usuario: {}", token.getUserEntity().getEmail());
                 });
 
     }
@@ -99,9 +114,10 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     @Transactional
     @Scheduled(cron = "0 0 2 * * ?")
     public void cleanExpiredTokens() {
-        log.info("Iniciando limpieza de refresh tokens expirados");
+        log.info("Iniciando limpieza de refresh tokens y tokens en lista negra expirados");
 
         refreshTokenRepository.deleteExpiredTokens(LocalDateTime.now());
+        blacklistedTokenRepository.deleteExpiredTokens(LocalDateTime.now());
 
         log.info("Limpieza de tokens expirados completada");
     }

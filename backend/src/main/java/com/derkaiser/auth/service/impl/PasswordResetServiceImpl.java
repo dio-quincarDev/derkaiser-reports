@@ -7,6 +7,7 @@ import com.derkaiser.auth.repository.RefreshTokenRepository;
 import com.derkaiser.auth.repository.UserEntityRepository;
 import com.derkaiser.auth.service.PasswordResetService;
 import com.derkaiser.auth.service.RefreshTokenService;
+import com.derkaiser.auth.util.RateLimitUtils;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -31,6 +32,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     private final RefreshTokenRepository refreshTokenRepository; // ⚠️ NUEVO
     private final PasswordEncoder passwordEncoder;
     private final JavaMailSender mailSender;
+    private final RateLimitUtils rateLimitUtils;
 
     @Value("${app.frontend.url:http://localhost:8080}")
     private String frontendUrl;
@@ -43,34 +45,44 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     public void passwordResetRequest(String email) {
         log.info("Solicitud de reset de password para email: {}", email);
 
+        // Aplicar rate limiting para evitar envío masivo de emails
+        String rateLimitKey = "forgot-password:" + email.toLowerCase();
+        if (!rateLimitUtils.isAllowed(rateLimitKey)) {
+            log.warn("Rate limit alcanzado para forgot-password para email: {}", email);
+            // Retornar sin error para no revelar si el email existe
+            return;
+        }
+
         // Buscar usuario
         Optional<UserEntity> userOptional = userEntityRepository.findByEmail(email);
 
-        if (userOptional.isEmpty()) {
+        if (userOptional.isPresent()) {
+            UserEntity user = userOptional.get();
+            passwordResetTokenRepository.deleteByUserEntity(user);
+
+            PasswordResetToken resetToken = PasswordResetToken.create(user);
+            passwordResetTokenRepository.save(resetToken);
+
+            log.info("Token de reset creado para usuario: {}", user.getEmail());
+
+            // Construir URL de reset
+            String resetUrl = frontendUrl + "/reset-password?token=" + resetToken.getToken();
+
+            try {
+                sendPasswordEmailReset(user.getEmail(), user.getFirstName(), resetUrl);
+                log.info("Email de reset enviado exitosamente a: {}", user.getEmail());
+
+                // Registro exitoso - limpiar el contador de intentos fallidos
+                rateLimitUtils.recordSuccess("forgot-password:" + email.toLowerCase());
+            } catch (Exception e) {
+                log.error("Error al enviar email de reset a {}: {}", user.getEmail(), e.getMessage());
+                // No lanzar excepción para no revelar si el email existe
+            }
+        } else {
+            // Aunque el email no exista, registramos el intento para prevenir enumeración
+            rateLimitUtils.recordFailure("forgot-password:" + email.toLowerCase());
             log.info("Email no encontrado, pero retornando success por seguridad: {}", email);
-            return; // Retornar sin error
         }
-
-        UserEntity user = userOptional.get();
-        passwordResetTokenRepository.deleteByUserEntity(user);
-
-        PasswordResetToken resetToken = PasswordResetToken.create(user);
-        passwordResetTokenRepository.save(resetToken);
-
-
-        log.info("Token de reset creado para usuario: {}", user.getEmail());
-
-        // Construir URL de reset
-        String resetUrl = frontendUrl + "/reset-password?token=" + resetToken.getToken();
-
-        try {
-           sendPasswordEmailReset(user.getEmail(), user.getFirstName(), resetUrl);
-            log.info("Email de reset enviado exitosamente a: {}", user.getEmail());
-        } catch (Exception e) {
-            log.error("Error al enviar email de reset a {}: {}", user.getEmail(), e.getMessage());
-            // No lanzar excepción para no revelar si el email existe
-        }
-
     }
 
     @Override

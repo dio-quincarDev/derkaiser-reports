@@ -16,4 +16,7 @@ public interface JwtService {
     String generateAccessToken(String email, String role);
     String generateRefreshToken(String email);
 
+    // Métodos para lista negra de tokens
+    void blacklistToken(String token, String tokenType);
+    boolean isTokenBlacklisted(String token);
 }

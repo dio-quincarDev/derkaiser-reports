@@ -7,6 +7,7 @@ import com.derkaiser.auth.commons.model.entity.UserEntity;
 import com.derkaiser.auth.commons.model.enums.UserRole;
 import com.derkaiser.auth.repository.UserEntityRepository;
 import com.derkaiser.auth.service.impl.AuthServiceImpl;
+import com.derkaiser.auth.util.RateLimitUtils;
 import com.derkaiser.exceptions.auth.DuplicateEmailException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -46,6 +48,9 @@ class AuthServiceImplTest {
 
     @Mock
     private RefreshTokenService refreshTokenService;
+
+    @Mock
+    private RateLimitUtils rateLimitUtils;
 
     @InjectMocks
     private AuthServiceImpl authService;
@@ -79,6 +84,9 @@ class AuthServiceImplTest {
 
     @Test
     void createUser_shouldCreateUserAndSendVerificationEmail() {
+        // Mock rate limiting to allow the request - using lenient to avoid unnecessary stubbing issues
+        lenient().when(rateLimitUtils.isAllowed(anyString())).thenReturn(true);
+
         when(userEntityRepository.findByEmail(anyString())).thenReturn(Optional.empty());
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
         when(userEntityRepository.save(any(UserEntity.class))).thenReturn(user);
@@ -94,6 +102,8 @@ class AuthServiceImplTest {
         verify(userEntityRepository, times(1)).findByEmail(userEntityRequest.getEmail());
         verify(userEntityRepository, times(1)).save(any(UserEntity.class));
         verify(emailVerificationService, times(1)).createAndSendVerificationEmail(user);
+        // Note: Rate limiting by IP only happens if request IP is available, which may not be in unit tests
+        // So we might not always see rateLimitUtils calls in this context
     }
 
     @Test
@@ -108,6 +118,9 @@ class AuthServiceImplTest {
 
     @Test
     void login_shouldReturnTokenResponse() {
+        // Mock rate limiting to allow the request
+        when(rateLimitUtils.isAllowed(anyString())).thenReturn(true);
+
         Authentication authentication = mock(Authentication.class);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(authentication);
         when(authentication.getPrincipal()).thenReturn(user);
@@ -124,6 +137,8 @@ class AuthServiceImplTest {
         verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
         verify(jwtService, times(1)).generateAccessToken(user.getEmail(), user.getRole().name());
         verify(refreshTokenService, times(1)).createRefreshToken(user);
+        verify(rateLimitUtils, times(1)).isAllowed(anyString()); // Should check rate limit
+        verify(rateLimitUtils, times(1)).recordSuccess(anyString()); // Should record success
     }
 
     // Edge Cases
@@ -140,10 +155,14 @@ class AuthServiceImplTest {
 
     @Test
     void login_withInvalidCredentials_shouldThrowException() {
+        // Mock rate limiting to allow the request initially
+        when(rateLimitUtils.isAllowed(anyString())).thenReturn(true);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenThrow(new org.springframework.security.core.AuthenticationException("Bad credentials") {});
 
         assertThrows(org.springframework.security.core.AuthenticationException.class, () -> authService.login(loginRequest));
+
+        verify(rateLimitUtils, times(1)).recordFailure(anyString()); // Should record failure
     }
 
     // Robust/Common Tests
