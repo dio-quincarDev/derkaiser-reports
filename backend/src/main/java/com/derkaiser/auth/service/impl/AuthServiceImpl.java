@@ -1,6 +1,8 @@
 package com.derkaiser.auth.service.impl;
 
 import com.derkaiser.auth.util.RateLimitUtils;
+import com.derkaiser.exceptions.auth.RateLimitExceededException;
+import com.derkaiser.exceptions.auth.UserNotVerifiedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -25,6 +27,8 @@ import com.derkaiser.exceptions.auth.DuplicateEmailException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Service
 @RequiredArgsConstructor
@@ -49,7 +53,7 @@ public class AuthServiceImpl implements AuthService {
             String rateLimitKey = "register:" + clientIp;
             if (!rateLimitUtils.isAllowed(rateLimitKey)) {
                 log.warn("Rate limit alcanzado para registro desde IP: {}", clientIp);
-                throw new RuntimeException("Demasiados intentos de registro. Inténtalo de nuevo más tarde.");
+                throw new RateLimitExceededException("Demasiados intentos de registro. Inténtalo de nuevo más tarde.");
             }
         }
 
@@ -87,9 +91,9 @@ public class AuthServiceImpl implements AuthService {
     // Método para obtener la IP del cliente actual
     private String getCurrentRequestIp() {
         try {
-            var requestAttributes = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+            var requestAttributes = RequestContextHolder.getRequestAttributes();
             if (requestAttributes != null) {
-                var request = ((org.springframework.web.context.request.ServletRequestAttributes) requestAttributes).getRequest();
+                var request = ((ServletRequestAttributes) requestAttributes).getRequest();
                 String ip = request.getHeader("X-Forwarded-For");
                 if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
                     ip = request.getHeader("X-Real-IP");
@@ -120,7 +124,7 @@ public class AuthServiceImpl implements AuthService {
             String message = String.format("Demasiados intentos de inicio de sesión. Inténtalo de nuevo en %d segundos.",
                 remainingAttempts <= 0 ? 300 : 300); // Si ya no hay intentos, mostrar tiempo de espera
             log.warn("Rate limit alcanzado para email: {}", loginRequest.getEmail());
-            throw new RuntimeException(message);
+            throw new RateLimitExceededException(message);
         }
 
         try {
@@ -132,6 +136,12 @@ public class AuthServiceImpl implements AuthService {
             );
 
             UserEntity user = (UserEntity) authentication.getPrincipal();
+
+            // Verificar si el usuario ha verificado su email
+            if (!user.getVerificatedEmail()) {
+                log.warn("Usuario no verificado intentando iniciar sesión: {}", user.getEmail());
+                throw new UserNotVerifiedException("Tu cuenta no está verificada. Por favor revisa tu email para verificarla.");
+            }
 
             // Registro exitoso - limpiar el contador de intentos fallidos
             rateLimitUtils.recordSuccess("login:" + loginRequest.getEmail().toLowerCase());

@@ -34,7 +34,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     private final JavaMailSender mailSender;
     private final RateLimitUtils rateLimitUtils;
 
-    @Value("${app.frontend.url:http://localhost:8080}")
+    @Value("${app.frontend.url:http://localhost:9000}")
     private String frontendUrl;
 
     @Value("${spring.mail.username}")
@@ -50,6 +50,8 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         if (!rateLimitUtils.isAllowed(rateLimitKey)) {
             log.warn("Rate limit alcanzado para forgot-password para email: {}", email);
             // Retornar sin error para no revelar si el email existe
+            // Si queremos manejar explícitamente el rate limit, podríamos lanzar una excepción
+            // pero según el patrón de seguridad, es mejor no revelar la información
             return;
         }
 

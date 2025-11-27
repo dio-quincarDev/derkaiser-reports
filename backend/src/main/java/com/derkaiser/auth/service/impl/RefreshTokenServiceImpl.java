@@ -9,6 +9,8 @@ import com.derkaiser.auth.repository.RefreshTokenRepository;
 import com.derkaiser.auth.repository.UserEntityRepository;
 import com.derkaiser.auth.service.JwtService;
 import com.derkaiser.auth.service.RefreshTokenService;
+import com.derkaiser.exceptions.auth.UserInactiveException;
+import com.derkaiser.exceptions.auth.UserNotVerifiedException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -68,11 +70,18 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 
         UserEntity user = existingToken.getUserEntity();
 
-        if (!user.getActive() || !user.getVerificatedEmail()) {
-            log.warn("Usuario inactivo o no verificado intenta usar refresh token: {}", user.getEmail());
+        if (!user.getActive()) {
+            log.warn("Usuario inactivo intenta usar refresh token: {}", user.getEmail());
             refreshTokenRepository.delete(existingToken);
             jwtService.blacklistToken(refreshToken, "REFRESH"); // Añadir a la lista negra
-            throw new IllegalArgumentException("Tu cuenta no está activa o verificada");
+            throw new UserInactiveException("Tu cuenta no está activa");
+        }
+
+        if (!user.getVerificatedEmail()) {
+            log.warn("Usuario no verificado intenta usar refresh token: {}", user.getEmail());
+            refreshTokenRepository.delete(existingToken);
+            jwtService.blacklistToken(refreshToken, "REFRESH"); // Añadir a la lista negra
+            throw new UserNotVerifiedException("Tu cuenta no está verificada. Por favor revisa tu email para verificarla.");
         }
 
         // Generar nuevo access token
