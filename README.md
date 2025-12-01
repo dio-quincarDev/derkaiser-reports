@@ -357,7 +357,3 @@ Para reportar problemas o solicitar nuevas funcionalidades:
 **Última actualización**: Diciembre 2024  
 **Versión**: 1.0.0-beta
 ```
-
----
-
-¿Necesitas que ajuste algo del README o lo hago más extenso/corto en alguna sección específica?
