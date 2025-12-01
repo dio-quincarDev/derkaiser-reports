@@ -1,4 +1,4 @@
-```markdown
+
 # 📋 Sistema de Informes Diarios - Infoplazas AIP
 
 Sistema web de gestión de informes diarios para colaboradores de Infoplazas AIP (Asociación de Interés Público), Sede Regional Chiriquí.
