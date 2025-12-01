@@ -3,7 +3,7 @@
 
 import { defineConfig } from '#q-app/wrappers'
 
-export default defineConfig((/* ctx */) => {
+export default defineConfig(() => {
   return {
     // https://v2.quasar.dev/quasar-cli-vite/prefetch-feature
     // preFetch: true,
@@ -11,7 +11,7 @@ export default defineConfig((/* ctx */) => {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-vite/boot-files
-    boot: [],
+    boot: ['i18n', 'axios'],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#css
     css: ['app.scss'],
@@ -29,6 +29,13 @@ export default defineConfig((/* ctx */) => {
       'roboto-font', // optional, you are not bound to it
       'material-icons', // optional, you are not bound to it
     ],
+
+    framework: {
+      config: {
+        dark: true, // Activar el modo oscuro globalmente
+      },
+      plugins: ['Notify', 'Dialog'],
+    },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#build
     build: {
@@ -53,50 +60,28 @@ export default defineConfig((/* ctx */) => {
       // polyfillModulePreload: true,
       // distDir
 
-      // extendViteConf (viteConf) {},
+      htmlVariables: {
+        productName: '1800',
+      },
+
+      extendViteConf(viteConf) {
+        viteConf.server = viteConf.server || {}
+        viteConf.server.proxy = {
+          '/v1': {
+            target: 'http://localhost:8080',
+            changeOrigin: true,
+            secure: false,
+          },
+        }
+      },
       // viteVuePluginOptions: {},
 
-      vitePlugins: [
-        [
-          'vite-plugin-checker',
-          {
-            eslint: {
-              lintCommand: 'eslint -c ./eslint.config.js "./src*/**/*.{js,mjs,cjs,vue}"',
-              useFlatConfig: true,
-            },
-          },
-          { server: false },
-        ],
-      ],
-    },
-
-    // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#devserver
-    devServer: {
-      // https: true,
-      open: true, // opens browser window automatically
-    },
-
-    // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework
-    framework: {
-      config: {},
-
-      // iconSet: 'material-icons', // Quasar icon set
-      // lang: 'en-US', // Quasar language pack
-
-      // For special cases outside of where the auto-import strategy can have an impact
-      // (like functional components as one of the examples),
-      // you can manually specify Quasar components/directives to be available everywhere:
-      //
-      // components: [],
-      // directives: [],
-
-      // Quasar plugins
-      plugins: [],
+      vitePlugins: [],
     },
 
     // animations: 'all', // --- includes all animations
     // https://v2.quasar.dev/options/animations
-    animations: [],
+    animations: 'all',
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#sourcefiles
     // sourceFiles: {
@@ -108,7 +93,7 @@ export default defineConfig((/* ctx */) => {
     //   pwaManifestFile: 'src-pwa/manifest.json',
     //   electronMain: 'src-electron/electron-main',
     //   electronPreload: 'src-electron/electron-preload'
-    //   bexManifestFile: 'src-bex/manifest.json
+    //   bexManifestFile: 'src-bex/manifest.json'
     // },
 
     // https://v2.quasar.dev/quasar-cli-vite/developing-ssr/configuring-ssr
@@ -187,7 +172,7 @@ export default defineConfig((/* ctx */) => {
       builder: {
         // https://www.electron.build/configuration/configuration
 
-        appId: 'quasar-project',
+        appId: 'gestion',
       },
     },
 
