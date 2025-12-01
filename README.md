@@ -38,7 +38,7 @@ Plataforma que permite a Enlaces Regionales, Facilitadores y Supervisores regist
 │   Quasar     │                     │      3.2     │                │              │
 │              │                     │              │                │              │
 └──────────────┘                     └──────────────┘                └──────────────┘
-   Puerto 8080                          Puerto 8081                     Puerto 5432
+   Puerto 9000                          Puerto 8080                     Puerto 5432
 ```
 
 ---
