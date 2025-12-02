@@ -1,19 +1,15 @@
 <template>
-  <q-layout>
+  <q-layout view="lHh LpR fFf">
     <q-page-container>
-      <q-page class="flex flex-center bg-grey-2">
-        <router-view />
-      </q-page>
+      <router-view />
     </q-page-container>
   </q-layout>
 </template>
 
 <script setup>
-// No script logic is needed for this simple layout
+// Puedes agregar lógica específica del layout de autenticación aquí si es necesario
 </script>
 
 <style scoped>
-.q-page {
-  min-height: 100vh;
-}
+/* Estilos específicos para el layout de autenticación si los tienes */
 </style>

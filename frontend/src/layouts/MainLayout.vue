@@ -11,7 +11,7 @@
           @click="toggleLeftDrawer"
         />
 
-        <q-toolbar-title> Informes App </q-toolbar-title>
+        <q-toolbar-title> Bitácora AIP </q-toolbar-title>
 
         <q-space />
 
