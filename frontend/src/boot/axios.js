@@ -80,13 +80,14 @@ api.interceptors.response.use(
         try {
           const { data } = await axios.post(`${API_CONSTANTS.BASE_URL}${API_CONSTANTS.V1_ROUTE}${API_CONSTANTS.AUTH_ROUTE}${API_CONSTANTS.REFRESH_ROUTE}`, { refreshToken });
 
-          localStorage.setItem('authToken', data.access_token);
-          localStorage.setItem('refreshToken', data.refresh_token);
+          localStorage.setItem('authToken', data.access_token || data.accessToken);
+          localStorage.setItem('refreshToken', data.refresh_token || data.refreshToken);
 
-          api.defaults.headers.common['Authorization'] = 'Bearer ' + data.access_token;
-          originalRequest.headers['Authorization'] = 'Bearer ' + data.access_token;
-          
-          processQueue(null, data.access_token);
+          const newAccessToken = data.access_token || data.accessToken;
+          api.defaults.headers.common['Authorization'] = 'Bearer ' + newAccessToken;
+          originalRequest.headers['Authorization'] = 'Bearer ' + newAccessToken;
+
+          processQueue(null, newAccessToken);
           return api(originalRequest);
         } catch (refreshError) {
           processQueue(refreshError, null);
@@ -113,10 +114,10 @@ function handleUnauthorized() {
   localStorage.removeItem('refreshToken');
 
   if (routerInstance) {
-    routerInstance.push(`${API_CONSTANTS.AUTH_ROUTE}${API_CONSTANTS.LOGIN_ROUTE}`)
+    routerInstance.push('/auth/login')
   } else {
     console.error('Router instance not initialized in interceptor.')
-    window.location.href = `${API_CONSTANTS.AUTH_ROUTE}${API_CONSTANTS.LOGIN_ROUTE}` // Fallback
+    window.location.href = '/auth/login' // Fallback
   }
 }
 

@@ -1,15 +1,21 @@
 <template>
-  <q-layout view="lHh LpR fFf">
+  <q-layout view="hHh Lpr lff">
     <q-page-container>
-      <router-view />
+      <div class="row justify-center items-center" style="min-height: 100vh; background-color: #f5f5f5;">
+        <div class="col-xs-12 col-sm-8 col-md-6 col-lg-4">
+          <router-view />
+        </div>
+      </div>
     </q-page-container>
   </q-layout>
 </template>
 
-<script setup>
-// Puedes agregar lógica específica del layout de autenticación aquí si es necesario
+<script>
+export default {
+  name: 'AuthLayout'
+}
 </script>
 
 <style scoped>
-/* Estilos específicos para el layout de autenticación si los tienes */
+/* Auth layout specific styles */
 </style>

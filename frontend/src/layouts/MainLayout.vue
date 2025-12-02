@@ -54,7 +54,7 @@ const linksList = [
     title: 'Dashboard',
     caption: 'Página principal',
     icon: 'dashboard',
-    link: '/',
+    link: '/app',
   },
   // Agrega más links según sea necesario
 ];

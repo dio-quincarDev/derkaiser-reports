@@ -31,7 +31,7 @@ const AuthService = {
    * Obtiene la información del usuario autenticado actualmente.
    */
   fetchUser() {
-    return api.get(AUTH_PATH);
+    return api.get(`${AUTH_PATH}`); // Updated to include the full path
   },
 
   /**
@@ -66,6 +66,14 @@ const AuthService = {
    */
   resetPassword({ token, newPassword }) {
     return api.post(`${AUTH_PATH}/reset-password`, { token, newPassword });
+  },
+
+  /**
+   * Refresca el token de acceso usando el token de refresco.
+   * @param {string} refreshToken - El token de refresco.
+   */
+  refreshToken(refreshToken) {
+    return api.post(`${AUTH_PATH}/refresh`, { refreshToken });
   },
 };
 

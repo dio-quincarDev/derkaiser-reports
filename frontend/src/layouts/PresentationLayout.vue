@@ -1,15 +1,22 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
+  <q-layout view="hHh Lpr lff">
     <q-page-container>
-      <router-view />
+      <div class="presentation-layout-container">
+        <router-view />
+      </div>
     </q-page-container>
   </q-layout>
 </template>
 
-<script>
-import { defineComponent } from 'vue'
-
-export default defineComponent({
-  name: 'PresentationLayout',
-})
+<script setup>
+// Layout para páginas públicas como la presentación
 </script>
+
+<style lang="scss" scoped>
+.presentation-layout-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+</style>

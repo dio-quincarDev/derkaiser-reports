@@ -19,6 +19,7 @@ export const useAuthStore = defineStore('auth', {
     getUser: (state) => state.user,
     getAccessToken: (state) => state.accessToken,
     getRole: (state) => (state.user ? state.user.role : null),
+    isUserActive: (state) => (state.user ? state.user.active : false),
   },
 
   actions: {
@@ -40,17 +41,24 @@ export const useAuthStore = defineStore('auth', {
       this.clearStatus();
       try {
         const { data } = await AuthService.login(credentials);
-        this.accessToken = data.access_token;
-        this.refreshToken = data.refresh_token;
+        // Handle the backend response structure
+        this.accessToken = data.access_token || data.accessToken;
+        this.refreshToken = data.refresh_token || data.refreshToken;
 
-        localStorage.setItem('authToken', data.access_token);
-        localStorage.setItem('refreshToken', data.refresh_token);
+        localStorage.setItem('authToken', this.accessToken);
+        localStorage.setItem('refreshToken', this.refreshToken);
 
         // Set token for subsequent requests
-        api.defaults.headers.common['Authorization'] = 'Bearer ' + data.access_token;
+        api.defaults.headers.common['Authorization'] = 'Bearer ' + this.accessToken;
 
-        // Fetch user data
-        await this.fetchUser();
+        // Use the user data from the response if available, otherwise fetch separately
+        if (data.user) {
+          this.user = data.user;
+          localStorage.setItem('user', JSON.stringify(data.user));
+        } else {
+          // Fetch user data if not provided in login response
+          await this.fetchUser();
+        }
         return true;
       } catch (error) {
         this.setError(error.response?.data?.message || 'Error en el inicio de sesión');
@@ -99,8 +107,28 @@ export const useAuthStore = defineStore('auth', {
       this.setLoading(true);
       this.clearStatus();
       try {
-        const response = await AuthService.register(userData);
-        return response;
+        const { data } = await AuthService.register(userData);
+        // Handle the backend response structure for registration
+        // Registration might return tokens immediately after successful registration
+        if (data.access_token && data.refresh_token) {
+          this.accessToken = data.access_token || data.accessToken;
+          this.refreshToken = data.refresh_token || data.refreshToken;
+
+          localStorage.setItem('authToken', this.accessToken);
+          localStorage.setItem('refreshToken', this.refreshToken);
+
+          // Set token for subsequent requests
+          api.defaults.headers.common['Authorization'] = 'Bearer ' + this.accessToken;
+
+          // Use the user data from the response if available
+          if (data.user) {
+            this.user = data.user;
+            localStorage.setItem('user', JSON.stringify(data.user));
+          } else {
+            await this.fetchUser();
+          }
+        }
+        return data;
       } catch (error) {
         this.setError(error.response?.data?.message || 'Error en el registro');
         throw error;
@@ -126,7 +154,8 @@ export const useAuthStore = defineStore('auth', {
       this.setLoading(true);
       this.clearStatus();
       try {
-        return await AuthService.resetPassword(payload);
+        const response = await AuthService.resetPassword(payload);
+        return response;
       } catch (error) {
         this.setError(error.response?.data?.message || 'Error al resetear la contraseña');
         throw error;
@@ -139,7 +168,9 @@ export const useAuthStore = defineStore('auth', {
         this.setLoading(true);
         this.clearStatus();
         try {
-            return await AuthService.verifyEmail(token);
+            const response = await AuthService.verifyEmail(token);
+            await this.fetchUser();
+            return response;
         } catch (error) {
             this.setError(error.response?.data?.message || 'Error al verificar el email');
             throw error;

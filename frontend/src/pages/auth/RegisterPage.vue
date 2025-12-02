@@ -95,6 +95,7 @@
 import { ref } from 'vue';
 import { useAuthStore } from 'stores/auth-module';
 import { useQuasar } from 'quasar';
+import { useRouter } from 'vue-router';
 
 const firstName = ref('');
 const lastName = ref('');
@@ -106,6 +107,7 @@ const registrationSuccess = ref(false);
 
 const authStore = useAuthStore();
 const $q = useQuasar();
+const router = useRouter();
 
 const handleRegister = async () => {
   registrationSuccess.value = false;
@@ -126,6 +128,11 @@ const handleRegister = async () => {
       message: '¡Registro exitoso! Revisa tu correo para la verificación.',
       icon: 'check_circle'
     });
+
+    // Optionally redirect to login after successful registration
+    setTimeout(() => {
+      router.push('/auth/login');
+    }, 3000); // Redirect after 3 seconds to allow user to read the message
   } catch (error) {
     // El error ya se maneja en el store, pero podemos mostrar una notificación si queremos
     $q.notify({

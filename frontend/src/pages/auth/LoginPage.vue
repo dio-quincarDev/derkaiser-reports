@@ -83,7 +83,9 @@ const authStore = useAuthStore();
 const handleLogin = async () => {
   const success = await authStore.login({ email: email.value, password: password.value });
   if (success) {
-    router.push('/'); // Redirigir al dashboard o página principal
+    // Redirect to the app dashboard after successful login
+    const redirectPath = router.currentRoute.value.query.redirect || '/app';
+    router.push(redirectPath);
   }
 };
 </script>

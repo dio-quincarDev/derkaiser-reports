@@ -1,157 +1,100 @@
 <template>
-  <q-page class="page-container">
-    <div class="content-wrapper">
-      <h1 class="main-title">Bitácora AIP</h1>
-      <p class="subtitle">Infoplazas Chiriquí</p>
-      <q-btn to="/auth/login" label="Ingresar" class="glass-button" flat />
+  <div class="minimal-container">
+    <div class="minimal-content">
+      <div class="minimal-header">
+        <h1 class="minimal-title">Bitácora AIP</h1>
+        <p class="minimal-subtitle">Infoplazas Chiriquí</p>
+      </div>
+
+      <div class="minimal-actions">
+        <BaseButton variant="outline" size="lg" :to="loginRoute">
+          {{ loginLabel }}
+        </BaseButton>
+        <BaseButton variant="primary" size="lg" :to="registerRoute">
+          {{ registerLabel }}
+        </BaseButton>
+      </div>
     </div>
-  </q-page>
+  </div>
 </template>
 
-<script>
-import { defineComponent } from 'vue'
+<script setup>
+import BaseButton from 'src/common/BaseButton.vue';
 
-export default defineComponent({
-  name: 'PresentationPage',
-})
+const loginRoute = '/auth/login';
+const registerRoute = '/auth/register';
+const loginLabel = 'Iniciar Sesión';
+const registerLabel = 'Registrarse';
 </script>
 
 <style lang="scss" scoped>
-@import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;600;700&display=swap');
-
-.page-container {
+.minimal-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  text-align: center;
-  font-family: 'Josefin Sans', sans-serif;
-  color: white;
-  overflow: hidden;
   min-height: 100vh;
-  background: linear-gradient(-45deg, $primary-dark, $primary, $dark, $dark-page);
-  background-size: 400% 400%;
-  animation: gradientBG 15s ease infinite;
-  position: relative;
+  background-color: $dark-page;
+  color: white;
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    'Open Sans',
+    'Helvetica Neue',
+    sans-serif;
 }
 
-.page-container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background:
-    radial-gradient(circle at 20% 80%, rgba($primary-light, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba($secondary, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba($dark, 0.2) 0%, transparent 50%);
-  pointer-events: none;
-}
-
-@keyframes gradientBG {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-.content-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.5rem;
-  position: relative;
+.minimal-content {
+  text-align: center;
+  max-width: 600px;
+  padding: 2rem;
   z-index: 1;
 }
 
-.main-title {
-  font-size: 5rem;
+.minimal-header {
+  margin-bottom: 3rem;
+}
+
+.minimal-title {
+  font-size: 3.5rem;
   font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: -0.5px;
+  color: $primary-light;
+  line-height: 1.1;
+
+  animation: fadeInUp 0.8s ease-out 0.2s both;
+}
+
+.minimal-subtitle {
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.7);
   margin: 0;
-  letter-spacing: 3px;
-  background: linear-gradient(45deg, #ffffff, $primary-light, $secondary);
-  background-size: 200% 200%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation:
-    gradientText 3s ease infinite,
-    fadeInUp 1s ease-out 0.5s backwards;
-  text-shadow: 0 0 30px rgba($primary-dark, 0.3);
+  letter-spacing: 0.5px;
+
+  animation: fadeInUp 0.8s ease-out 0.4s both;
 }
 
-@keyframes gradientText {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
+.minimal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+
+  animation: fadeInUp 0.8s ease-out 0.6s both;
 }
 
-.subtitle {
-  font-size: 1.3rem;
-  font-weight: 300;
-  letter-spacing: 2px;
-  color: rgba(255, 255, 255, 0.9);
-  margin-top: -0.5rem;
-  animation: fadeInUp 1s ease-out 1s backwards;
-  text-transform: uppercase;
-  font-weight: 400;
-}
-
-.glass-button {
-  margin-top: 2.5rem;
-  padding: 14px 45px;
-  font-size: 1.1rem;
-  letter-spacing: 1.5px;
-  color: white;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50px;
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  transition: all 0.4s ease;
-  animation: fadeInUp 1s ease-out 1.5s backwards;
-  position: relative;
-  overflow: hidden;
-  font-weight: 400;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s;
-  }
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.25);
-    box-shadow:
-      0 0 25px rgba($primary-light, 0.4),
-      0 0 50px rgba($primary-dark, 0.2);
-    transform: translateY(-3px) scale(1.05);
-
-    &::before {
-      left: 100%;
-    }
-  }
-}
-
-// Enhanced entry animations
+// Minimal fade-in animation
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
@@ -159,45 +102,43 @@ export default defineComponent({
   }
 }
 
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0px) scale(1);
-  }
-  50% {
-    transform: translateY(-10px) scale(1.02);
-  }
-}
-
 // Responsive adjustments
 @media (max-width: 768px) {
-  .main-title {
-    font-size: 3.5rem;
-    letter-spacing: 2px;
+  .minimal-container {
+    padding: 1rem;
   }
 
-  .subtitle {
+  .minimal-title {
+    font-size: 2.5rem;
+  }
+
+  .minimal-subtitle {
     font-size: 1.1rem;
-    letter-spacing: 1px;
   }
 
-  .glass-button {
-    padding: 12px 35px;
-    font-size: 1rem;
+  .minimal-actions {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .base-button {
+    width: 100%;
+    max-width: 250px;
   }
 }
 
 @media (max-width: 480px) {
-  .main-title {
-    font-size: 2.8rem;
+  .minimal-title {
+    font-size: 2rem;
   }
 
-  .subtitle {
+  .minimal-subtitle {
     font-size: 1rem;
   }
 
-  .content-wrapper {
-    gap: 1rem;
+  .minimal-content {
+    padding: 1rem;
   }
 }
 </style>
