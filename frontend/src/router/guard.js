@@ -18,7 +18,7 @@ export function authGuard(to, from, next) {
     const isAuthenticated = authStore.isAuthenticated;
     const isUserActive = authStore.isUserActive;
 
-    const redirectToVerifyEmail = '/auth/verify-email';
+    const redirectToVerifyEmail = '/verify';
     const isTargetVerifyEmail = to.path === redirectToVerifyEmail;
     const isLoginPath = to.path === '/auth/login';
     const isRegisterPath = to.path === '/auth/register';

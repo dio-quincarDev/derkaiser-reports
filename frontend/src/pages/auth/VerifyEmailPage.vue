@@ -2,37 +2,19 @@
   <q-card class="q-pa-md shadow-2 my-card" bordered>
     <q-card-section class="text-center">
       <div class="text-h5 text-weight-bold">Verificar Correo Electrónico</div>
-      <div v-if="!verificationComplete">
-        <q-spinner size="50px" color="primary" />
-        <div class="q-mt-md">Verificando tu correo electrónico...</div>
-      </div>
-      <div v-else-if="verificationSuccess" class="text-positive">
-        <q-icon name="check_circle" size="50px" />
-        <div class="q-mt-md text-h6">¡Correo verificado exitosamente!</div>
-        <div class="q-mt-sm">Tu cuenta ha sido verificada correctamente.</div>
-      </div>
-      <div v-else class="text-negative">
-        <q-icon name="error" size="50px" />
-        <div class="q-mt-md text-h6">Error en la verificación</div>
-        <div class="q-mt-sm">{{ errorMessage }}</div>
-      </div>
     </q-card-section>
 
-    <q-card-section v-if="verificationComplete && !verificationSuccess" class="text-center">
-      <q-btn 
-        @click="resendVerification" 
-        color="primary" 
-        :loading="isResending"
-        :disable="resendSuccess"
-      >
-        {{ resendSuccess ? '¡Email reenviado!' : 'Reenviar correo de verificación' }}
-      </q-btn>
-      <div v-if="resendSuccess" class="q-mt-md text-positive">
-        ¡Email de verificación reenviado! Revisa tu bandeja de entrada.
-      </div>
+    <q-card-section>
+      <EmailVerification
+        :status="verificationStatus"
+        :error-message="errorMessage"
+        :is-resending="isResending"
+        :resend-success="resendSuccess"
+        @resend="resendVerification"
+      />
     </q-card-section>
 
-    <q-card-section class="text-center q-pt-none" v-if="verificationComplete">
+    <q-card-section class="text-center q-pt-none" v-if="verificationStatus !== 'verifying'">
       <div class="text-grey-8">
         <router-link to="/auth/login" class="text-primary text-weight-bold" style="text-decoration: none;">
           Volver al Inicio de Sesión
@@ -43,10 +25,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from 'stores/auth-module';
 import { useQuasar } from 'quasar';
+import EmailVerification from 'components/auth/EmailVerification.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -58,6 +41,13 @@ const verificationSuccess = ref(false);
 const errorMessage = ref('');
 const isResending = ref(false);
 const resendSuccess = ref(false);
+
+const verificationStatus = computed(() => {
+  if (!verificationComplete.value) {
+    return 'verifying';
+  }
+  return verificationSuccess.value ? 'success' : 'error';
+});
 
 onMounted(async () => {
   const token = route.query.token;

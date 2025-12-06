@@ -93,7 +93,7 @@ public class UserEntity implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return active;
+        return true;
     }
 
     @Override
@@ -103,7 +103,7 @@ public class UserEntity implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return verificatedEmail;
+        return active;
     }
 
     //Metodo de Ayuda

@@ -37,7 +37,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DisabledException.class)
     public ResponseEntity<ErrorResponse> handleDisabledUserException(DisabledException ex) {
-        ErrorResponse errorResponse = new ErrorResponse("USER_ACCOUNT_DISABLED", "Tu cuenta no está activa o verificada");
+        ErrorResponse errorResponse = new ErrorResponse("USER_ACCOUNT_DISABLED", "Tu cuenta ha sido desactivada.");
         return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
     }
 

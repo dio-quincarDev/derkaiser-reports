@@ -34,13 +34,19 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     @Override
     @Transactional
     public String createRefreshToken(UserEntity userEntity) {
-        log.info("Creando refresh token para usuario: {}", userEntity.getEmail());
+        log.info("Creando o actualizando refresh token para usuario: {}", userEntity.getEmail());
 
         String tokenValue = jwtService.generateRefreshToken(userEntity.getEmail());
+        
+        RefreshToken refreshToken = refreshTokenRepository.findByUserEntity(userEntity)
+                .orElse(new RefreshToken());
 
-        RefreshToken refreshToken = RefreshToken.create(userEntity, tokenValue);
+        refreshToken.setUserEntity(userEntity);
+        refreshToken.setToken(tokenValue);
+        refreshToken.setExpiryDate(LocalDateTime.now().plusDays(7)); 
+
         refreshTokenRepository.save(refreshToken);
-        log.info("Refresh token creado exitosamente para usuario: {}", userEntity.getEmail());
+        log.info("Refresh token guardado exitosamente para usuario: {}", userEntity.getEmail());
 
         return tokenValue;
     }

@@ -6,50 +6,11 @@
     </q-card-section>
 
     <q-card-section>
-      <q-form @submit.prevent="handleLogin" class="q-gutter-md">
-        <q-input
-          v-model="email"
-          label="Correo Electrónico"
-          type="email"
-          lazy-rules
-          :rules="[val => !!val || 'El correo es requerido', val => /.+@.+\..+/.test(val) || 'Debe ser un correo válido']"
-        >
-          <template v-slot:prepend>
-            <q-icon name="email" />
-          </template>
-        </q-input>
-
-        <q-input
-          v-model="password"
-          label="Contraseña"
-          :type="isPasswordVisible ? 'text' : 'password'"
-          lazy-rules
-          :rules="[val => !!val || 'La contraseña es requerida']"
-        >
-          <template v-slot:prepend>
-            <q-icon name="lock" />
-          </template>
-          <template v-slot:append>
-            <q-icon
-              :name="isPasswordVisible ? 'visibility_off' : 'visibility'"
-              class="cursor-pointer"
-              @click="isPasswordVisible = !isPasswordVisible"
-            />
-          </template>
-        </q-input>
-
-        <div v-if="authStore.status.isError" class="q-mt-md text-negative text-center">
-          {{ authStore.status.message }}
-        </div>
-
-        <q-btn
-          label="Ingresar"
-          type="submit"
-          color="primary"
-          class="full-width q-mt-lg"
-          :loading="authStore.status.isloading"
-        />
-      </q-form>
+      <LoginForm
+        :loading="authStore.status.isloading"
+        :error-message="authStore.status.isError ? authStore.status.message : ''"
+        @submit="handleLogin"
+      />
     </q-card-section>
 
     <q-card-section class="text-center q-pt-none">
@@ -69,19 +30,15 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from 'stores/auth-module';
-
-const email = ref('');
-const password = ref('');
-const isPasswordVisible = ref(false);
+import LoginForm from 'components/auth/LoginForm.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
 
-const handleLogin = async () => {
-  const success = await authStore.login({ email: email.value, password: password.value });
+const handleLogin = async (credentials) => {
+  const success = await authStore.login(credentials);
   if (success) {
     // Redirect to the app dashboard after successful login
     const redirectPath = router.currentRoute.value.query.redirect || '/app';

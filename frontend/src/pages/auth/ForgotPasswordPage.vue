@@ -12,7 +12,10 @@
           label="Correo Electrónico"
           type="email"
           lazy-rules
-          :rules="[val => !!val || 'El correo es requerido', val => /.+@.+\..+/.test(val) || 'Debe ser un correo válido']"
+          :rules="[
+            (val) => !!val || 'El correo es requerido',
+            (val) => /.+@.+\..+/.test(val) || 'Debe ser un correo válido',
+          ]"
         >
           <template v-slot:prepend>
             <q-icon name="email" />
@@ -40,7 +43,11 @@
 
     <q-card-section class="text-center q-pt-none">
       <div class="text-grey-8">
-        <router-link to="/auth/login" class="text-primary text-weight-bold" style="text-decoration: none;">
+        <router-link
+          to="/auth/login"
+          class="text-primary text-weight-bold"
+          style="text-decoration: none"
+        >
           Volver al Inicio de Sesión
         </router-link>
       </div>
@@ -49,35 +56,36 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useAuthStore } from 'stores/auth-module';
-import { useQuasar } from 'quasar';
+import { ref } from 'vue'
+import { useAuthStore } from 'stores/auth-module'
+import { useQuasar } from 'quasar'
 
-const email = ref('');
-const requestSuccess = ref(false);
+const email = ref('')
+const requestSuccess = ref(false)
 
-const authStore = useAuthStore();
-const $q = useQuasar();
+const authStore = useAuthStore()
+const $q = useQuasar()
 
 const handleForgotPassword = async () => {
   try {
-    await authStore.forgotPassword(email.value);
-    requestSuccess.value = true;
+    await authStore.forgotPassword(email.value)
+    requestSuccess.value = true
     $q.notify({
       color: 'positive',
       position: 'top',
       message: '¡Email de recuperación enviado! Revisa tu bandeja de entrada.',
-      icon: 'check_circle'
-    });
-  } catch (error) {
+      icon: 'check_circle',
+    })
+  } catch {
     $q.notify({
       color: 'negative',
       position: 'top',
-      message: authStore.status.message || 'Ocurrió un error al solicitar la recuperación de contraseña.',
-      icon: 'report_problem'
-    });
+      message:
+        authStore.status.message || 'Ocurrió un error al solicitar la recuperación de contraseña.',
+      icon: 'report_problem',
+    })
   }
-};
+}
 </script>
 
 <style scoped>

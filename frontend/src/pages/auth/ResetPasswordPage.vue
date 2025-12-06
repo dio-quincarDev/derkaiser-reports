@@ -6,85 +6,16 @@
     </q-card-section>
 
     <q-card-section>
-      <q-form @submit.prevent="handleResetPassword" class="q-gutter-md">
-        <q-input
-          v-model="token"
-          label="Token de Restablecimiento"
-          type="text"
-          lazy-rules
-          :rules="[val => !!val || 'El token es requerido']"
-          readonly
-        >
-          <template v-slot:prepend>
-            <q-icon name="vpn_key" />
-          </template>
-        </q-input>
-
-        <q-input
-          v-model="newPassword"
-          label="Nueva Contraseña"
-          :type="isPasswordVisible ? 'text' : 'password'"
-          lazy-rules
-          :rules="[
-            val => !!val || 'La contraseña es requerida',
-            val => val.length >= 8 || 'Mínimo 8 caracteres',
-            val => /(?=.*[A-Z])/.test(val) || 'Debe contener una mayúscula',
-            val => /(?=.*[a-z])/.test(val) || 'Debe contener una minúscula',
-            val => /(?=.*\d)/.test(val) || 'Debe contener un número'
-          ]"
-          hint="Mínimo 8 caracteres, con mayúsculas, minúsculas y números."
-        >
-          <template v-slot:prepend>
-            <q-icon name="lock" />
-          </template>
-          <template v-slot:append>
-            <q-icon
-              :name="isPasswordVisible ? 'visibility_off' : 'visibility'"
-              class="cursor-pointer"
-              @click="isPasswordVisible = !isPasswordVisible"
-            />
-          </template>
-        </q-input>
-
-        <q-input
-          v-model="confirmPassword"
-          label="Confirmar Nueva Contraseña"
-          :type="isConfirmPasswordVisible ? 'text' : 'password'"
-          lazy-rules
-          :rules="[
-            val => !!val || 'Debes confirmar la contraseña',
-            val => val === newPassword || 'Las contraseñas no coinciden'
-          ]"
-        >
-          <template v-slot:prepend>
-            <q-icon name="lock_outline" />
-          </template>
-          <template v-slot:append>
-            <q-icon
-              :name="isConfirmPasswordVisible ? 'visibility_off' : 'visibility'"
-              class="cursor-pointer"
-              @click="isConfirmPasswordVisible = !isConfirmPasswordVisible"
-            />
-          </template>
-        </q-input>
-
-        <div v-if="authStore.status.isError" class="q-mt-md text-negative text-center">
-          {{ authStore.status.message }}
-        </div>
-
-        <div v-if="resetSuccess" class="q-mt-md text-positive text-center">
-          ¡Contraseña restablecida con éxito! Redirigiendo al inicio de sesión...
-        </div>
-
-        <q-btn
-          label="Restablecer Contraseña"
-          type="submit"
-          color="primary"
-          class="full-width q-mt-lg"
-          :loading="authStore.status.isloading"
-          :disabled="resetSuccess"
-        />
-      </q-form>
+      <ResetPasswordForm
+        v-if="!resetSuccess && token"
+        :token="token"
+        :loading="authStore.status.isloading"
+        :error-message="authStore.status.isError ? authStore.status.message : ''"
+        @submit="handleResetPassword"
+      />
+      <div v-if="resetSuccess" class="q-mt-md text-positive text-center">
+        ¡Contraseña restablecida con éxito! Redirigiendo al inicio de sesión...
+      </div>
     </q-card-section>
 
     <q-card-section class="text-center q-pt-none">
@@ -102,6 +33,7 @@ import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from 'stores/auth-module';
 import { useQuasar } from 'quasar';
+import ResetPasswordForm from 'components/auth/ResetPasswordForm.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -109,19 +41,13 @@ const $q = useQuasar();
 const authStore = useAuthStore();
 
 const token = ref('');
-const newPassword = ref('');
-const confirmPassword = ref('');
-const isPasswordVisible = ref(false);
-const isConfirmPasswordVisible = ref(false);
 const resetSuccess = ref(false);
 
 onMounted(() => {
-  // Get the token from the URL query parameter
   const tokenFromQuery = route.query.token;
   if (tokenFromQuery) {
     token.value = tokenFromQuery;
   } else {
-    // If no token provided, redirect to forgot password
     $q.notify({
       type: 'negative',
       message: 'Token de restablecimiento no proporcionado.',
@@ -131,20 +57,11 @@ onMounted(() => {
   }
 });
 
-const handleResetPassword = async () => {
-  if (newPassword.value !== confirmPassword.value) {
-    $q.notify({
-      type: 'negative',
-      message: 'Las contraseñas no coinciden.',
-      position: 'top'
-    });
-    return;
-  }
-
+const handleResetPassword = async (formData) => {
   try {
     await authStore.resetPassword({
-      token: token.value,
-      newPassword: newPassword.value
+      token: formData.token,
+      newPassword: formData.newPassword
     });
     resetSuccess.value = true;
     
@@ -155,7 +72,6 @@ const handleResetPassword = async () => {
       icon: 'check_circle'
     });
 
-    // Redirect to login after a delay
     setTimeout(() => {
       router.push('/auth/login');
     }, 2000);

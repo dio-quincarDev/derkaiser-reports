@@ -13,6 +13,17 @@ const routes = [
 
   // Auth routes (public)
   {
+    path: '/verify',
+    component: () => import('layouts/AuthLayout.vue'),
+    children: [
+      {
+        path: '',
+        component: () => import('pages/auth/VerifyEmailPage.vue'),
+        meta: { requiresGuest: true }
+      }
+    ]
+  },
+  {
     path: '/auth',
     component: () => import('layouts/AuthLayout.vue'), // Assuming we might want a different layout for auth
     children: [
@@ -34,11 +45,6 @@ const routes = [
       {
         path: 'reset-password',
         component: () => import('pages/auth/ResetPasswordPage.vue'),
-        meta: { requiresGuest: true }
-      },
-      {
-        path: 'verify-email',
-        component: () => import('pages/auth/VerifyEmailPage.vue'),
         meta: { requiresGuest: true }
       }
     ]

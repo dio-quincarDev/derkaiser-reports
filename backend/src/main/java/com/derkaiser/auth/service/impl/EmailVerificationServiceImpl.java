@@ -6,14 +6,15 @@ import com.derkaiser.auth.repository.UserEntityRepository;
 import com.derkaiser.auth.repository.VerificationTokenRepository;
 import com.derkaiser.auth.service.EmailVerificationService;
 import com.derkaiser.exceptions.auth.UserNotVerifiedException;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -106,31 +107,31 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
         createAndSendVerificationEmail(user);
     }
 
-    private void sendEmailVerification(String toEmail, String firstName, String verifyUrl) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromEmail);
-        message.setTo(toEmail);
-        message.setSubject("Verifica tu cuenta - Infoplazas AIP");
-        message.setText(construirMensajeVerificacion(firstName, verifyUrl));
+    private void sendEmailVerification(String toEmail, String firstName, String verifyUrl) throws MessagingException {
+        MimeMessage mimeMessage = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
 
-        mailSender.send(message);
+        helper.setFrom(fromEmail);
+        helper.setTo(toEmail);
+        helper.setSubject("Verifica tu cuenta - Infoplazas AIP");
+        helper.setText(construirMensajeVerificacion(firstName, verifyUrl), true); // true indica que es HTML
+
+        mailSender.send(mimeMessage);
     }
+
     private String construirMensajeVerificacion(String firstName, String verifyUrl) {
         return String.format("""
-                Hola %s,
-                
-                Gracias por registrarte en Infoplazas AIP.
-                
-                Por favor, verifica tu cuenta haciendo clic en el siguiente enlace:
-                
-                %s
-                
-                Este enlace expirará en 24 horas.
-                
-                Si no creaste esta cuenta, puedes ignorar este mensaje.
-                
-                Saludos,
-                Equipo de Infoplazas AIP
+                <div style="font-family: Arial, sans-serif; color: #333;">
+                    <h2>Hola %s,</h2>
+                    <p>Gracias por registrarte en Infoplazas AIP.</p>
+                    <p>Por favor, verifica tu cuenta haciendo clic en el siguiente enlace:</p>
+                    <p><a href="%s" style="color: #1a73e8; text-decoration: none;">Verificar mi cuenta</a></p>
+                    <p>Este enlace expirará en 24 horas.</p>
+                    <br>
+                    <p>Si no creaste esta cuenta, puedes ignorar este mensaje.</p>
+                    <br>
+                    <p>Saludos,<br>Equipo de Infoplazas AIP</p>
+                </div>
                 """, firstName, verifyUrl);
     }
 
