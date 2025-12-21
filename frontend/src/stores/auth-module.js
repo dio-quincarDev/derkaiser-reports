@@ -19,7 +19,7 @@ export const useAuthStore = defineStore('auth', {
     getUser: (state) => state.user,
     getAccessToken: (state) => state.accessToken,
     getRole: (state) => (state.user ? state.user.role : null),
-    isUserActive: (state) => (state.user ? state.user.active : false),
+    isUserActive: (state) => (state.user ? state.user.verificated_email : false),
   },
 
   actions: {
@@ -51,14 +51,10 @@ export const useAuthStore = defineStore('auth', {
         // Set token for subsequent requests
         api.defaults.headers.common['Authorization'] = 'Bearer ' + this.accessToken;
 
-        // Use the user data from the response if available, otherwise fetch separately
-        if (data.user) {
-          this.user = data.user;
-          localStorage.setItem('user', JSON.stringify(data.user));
-        } else {
-          // Fetch user data if not provided in login response
-          await this.fetchUser();
-        }
+        // Always fetch fresh user data after login to ensure the most current state
+        // This is crucial to get the latest verification status
+        await this.fetchUser();
+
         return true;
       } catch (error) {
         this.setError(error.response?.data?.message || 'Error en el inicio de sesión');

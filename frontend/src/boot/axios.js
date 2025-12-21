@@ -37,8 +37,8 @@ const api = axios.create({
 
 // Función para verificar si el token es válido (puedes adaptarla según tus necesidades)
 function isValidToken(token) {
-  // Ejemplo: verificar la expiración del token si el backend lo permite
-  return !!token // Por ahora, asumimos que cualquier token no nulo es válido
+  // Por ahora, asumimos que cualquier token no nulo es válido
+  return !!token
 }
 
 // Interceptor para añadir el token JWT a cada solicitud

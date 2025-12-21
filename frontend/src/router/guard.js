@@ -3,8 +3,28 @@ import { Notify } from 'quasar';
 
 // Track if we're currently processing a route to prevent re-entrancy
 let isProcessingRoute = false;
+let hasRunCleanBoot = false;
 
 export function authGuard(to, from, next) {
+  // --- Clean boot logic (runs only once) ---
+  if (!hasRunCleanBoot) {
+    hasRunCleanBoot = true;
+    try {
+      const authStore = useAuthStore();
+      const token = authStore.accessToken;
+      const user = authStore.user;
+
+      if (token && user && typeof user.verificatedEmail === 'undefined') {
+        console.log('Old user state detected, fetching fresh data...');
+        // Do not await, let it run in the background. The UI will update reactively.
+        authStore.fetchUser();
+      }
+    } catch(e) {
+      console.error('Error during clean boot check:', e);
+    }
+  }
+  // --- End of clean boot logic ---
+
   // Prevent re-entrancy to avoid potential infinite loops
   if (isProcessingRoute) {
     console.warn('Router guard re-entrancy detected, skipping guard logic');

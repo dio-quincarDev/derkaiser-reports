@@ -67,6 +67,12 @@ onMounted(async () => {
       message: '¡Correo verificado exitosamente!',
       icon: 'check_circle'
     });
+
+    // Redirigir al dashboard después de un corto tiempo para que el usuario vea el mensaje de éxito.
+    setTimeout(() => {
+      router.push('/app');
+    }, 2000); // Redirigir después de 2 segundos
+
   } catch (error) {
     errorMessage.value = error.response?.data?.message || 'Error al verificar el correo electrónico.';
   } finally {
